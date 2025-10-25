@@ -16,6 +16,7 @@ import { Trophy, Pause, Play, Award, ChevronDown, ChevronUp, Volume2, VolumeX } 
 import { calculateLevel, getLevelProgress } from "@/lib/achievements"
 import type { Achievement } from "@/lib/achievements"
 import { GameInfo } from "./game-info"
+import { ComboNotification } from "./combo-notification"
 
 export function GameUI() {
   const [time, setTime] = useState(0)
@@ -27,10 +28,13 @@ export function GameUI() {
   const [currentNotification, setCurrentNotification] = useState<Achievement | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const score = useGameStore((state) => state.score)
+  const highScore = useGameStore((state) => state.highScore)
   const boatSpeed = useGameStore((state) => state.boatSpeed)
   const stats = useGameStore((state) => state.stats)
   const combo = useGameStore((state) => state.combo)
   const multiplier = useGameStore((state) => state.multiplier)
+  const loadHighScore = useGameStore((state) => state.loadHighScore)
+  const updateTimePlayed = useGameStore((state) => state.updateTimePlayed)
   const isAudioPlaying = useGameStore((state) => state.isAudioPlaying)
   const currentTrack = useGameStore((state) => state.currentTrack)
   const initializeAudio = useGameStore((state) => state.initializeAudio)
@@ -58,11 +62,25 @@ export function GameUI() {
   }, [initializeAudio])
 
   useEffect(() => {
+    // Load high score when component mounts
+    loadHighScore()
+  }, [loadHighScore])
+
+  useEffect(() => {
     // Hide audio prompt when music starts playing
     if (isAudioPlaying && currentTrack) {
       setShowAudioPrompt(false)
     }
   }, [isAudioPlaying, currentTrack])
+
+  useEffect(() => {
+    // Auto-hide audio prompt after 3 seconds
+    const timer = setTimeout(() => {
+      setShowAudioPrompt(false)
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     if (isPaused || showGameOver) return
@@ -73,6 +91,11 @@ export function GameUI() {
 
     return () => clearInterval(interval)
   }, [isPaused, showGameOver])
+
+  // Separat useEffect for å oppdatere timePlayed i store
+  useEffect(() => {
+    updateTimePlayed(time)
+  }, [time, updateTimePlayed])
 
   useEffect(() => {
     const unsubscribe = useGameStore.subscribe((state, prevState) => {
@@ -113,16 +136,7 @@ export function GameUI() {
       <MobileControls />
 
       <div className="pointer-events-none absolute inset-0">
-        {combo > 1 && (
-          <div className="absolute left-1/2 top-24 -translate-x-1/2 animate-pulse">
-            <div className="rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 px-6 py-3 text-center shadow-lg">
-              <div className="text-4xl font-bold text-white">{combo}x COMBO!</div>
-              {multiplier > 1 && (
-                <div className="text-xl font-semibold text-white/90">{multiplier}x Poeng Multiplier</div>
-              )}
-            </div>
-          </div>
-        )}
+        <ComboNotification combo={combo} multiplier={multiplier} />
 
         <div className="absolute left-1/2 top-6 -translate-x-1/2">
           <div className="pointer-events-auto">
@@ -132,9 +146,13 @@ export function GameUI() {
 
         {/* Audio prompt for autoplay */}
         {showAudioPrompt && !isAudioPlaying && (
-          <div className="absolute left-1/2 top-20 -translate-x-1/2 animate-pulse">
-            <div className="rounded-lg bg-blue-600/80 px-4 py-2 text-center shadow-lg backdrop-blur-sm">
-              <div className="text-sm font-medium text-white">🎵 Klikk hvor som helst for å starte musikk</div>
+          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 animate-pulse z-30
+                          md:absolute md:left-1/2 md:top-20 md:bottom-auto md:-translate-x-1/2">
+            <div className="rounded-lg bg-blue-600/80 px-3 py-2 text-center shadow-lg backdrop-blur-sm
+                           md:px-4">
+              <div className="text-xs md:text-sm font-medium text-white">
+                🎵 Klikk for å starte musikk
+              </div>
             </div>
           </div>
         )}
@@ -161,6 +179,36 @@ export function GameUI() {
           )}
         </div>
 
+        {/* Live Stats Card - oppdateres i sanntid */}
+        <Card className="pointer-events-auto bg-black/80 backdrop-blur-sm p-3 fixed top-16 right-4 z-20">
+          <div className="text-white text-sm space-y-2">
+            <div className="font-bold text-center text-yellow-400">📊 LIVE STATISTIKK</div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="text-center">
+                <div className="text-white/70">🐟 Fisk</div>
+                <div className="font-bold text-blue-400">{stats.fishCaught}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-white/70">🎯 Fugler</div>
+                <div className="font-bold text-red-400">{stats.targetsHit}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-white/70">💎 Skatter</div>
+                <div className="font-bold text-green-400">{stats.collectiblesFound}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-white/70">⏱️ Tid</div>
+                <div className="font-bold text-purple-400">{Math.floor(time / 60)}:{(time % 60).toString().padStart(2, '0')}</div>
+              </div>
+            </div>
+            {combo > 1 && (
+              <div className="text-center border-t border-white/20 pt-2">
+                <div className="text-orange-400 font-bold">🔥 COMBO x{combo}!</div>
+              </div>
+            )}
+          </div>
+        </Card>
+
         {/* Game Stats - Compact layout for mobile */}
         <div className={`${isMobile
           ? 'flex flex-wrap gap-2 p-2'
@@ -172,6 +220,11 @@ export function GameUI() {
             <div className={`space-y-1 text-white ${isMobile ? 'text-center' : ''}`}>
               <div className={`font-medium text-white/70 ${isMobile ? 'text-xs' : 'text-sm'}`}>POENG</div>
               <div className={`font-bold ${isMobile ? 'text-lg' : 'text-4xl'}`}>{score}</div>
+              {highScore > 0 && (
+                <div className={`font-medium text-green-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Rekord: {highScore}
+                </div>
+              )}
               {multiplier > 1 && (
                 <div className={`font-semibold text-yellow-400 ${isMobile ? 'text-xs' : 'text-lg'}`}>
                   {multiplier}x
@@ -268,8 +321,8 @@ export function GameUI() {
           <Button
             onClick={toggleAudio}
             className={`pointer-events-auto ${
-              isAudioPlaying ? 'bg-green-600 hover:bg-green-700' : 
-              currentTrack ? 'bg-yellow-600 hover:bg-yellow-700' : 
+              isAudioPlaying ? 'bg-green-600 hover:bg-green-700' :
+              currentTrack ? 'bg-yellow-600 hover:bg-yellow-700' :
               'bg-blue-600 hover:bg-blue-700 animate-pulse'
             } ${isMobile ? 'p-2' : 'px-4 py-2'}`}
             size={isMobile ? "sm" : "lg"}

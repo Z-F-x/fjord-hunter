@@ -23,7 +23,7 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
   const [audioVolume, setAudioVolume] = useState(30)
   const [enableEffects, setEnableEffects] = useState(true)
   const [difficulty, setDifficulty] = useState('normal')
-  
+
   const setAudioVolume_store = useGameStore((state) => state.setAudioVolume)
   const setPlayerName_store = useGameStore((state) => state.setPlayerName)
   const setDifficulty_store = useGameStore((state) => state.setDifficulty)
@@ -35,7 +35,7 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
       const savedVolume = parseInt(localStorage.getItem('fjord-hunter-audio-volume') || '30')
       const savedEffects = localStorage.getItem('fjord-hunter-enable-effects') === 'true'
       const savedDifficulty = localStorage.getItem('fjord-hunter-difficulty') || 'normal'
-      
+
       setPlayerName(savedName)
       setAudioVolume(savedVolume)
       setEnableEffects(savedEffects)
@@ -48,18 +48,18 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
       alert('Vennligst skriv inn et spillernavn!')
       return
     }
-    
+
     // Store player settings in localStorage
     localStorage.setItem('fjord-hunter-player-name', playerName.trim())
     localStorage.setItem('fjord-hunter-audio-volume', audioVolume.toString())
     localStorage.setItem('fjord-hunter-enable-effects', enableEffects.toString())
     localStorage.setItem('fjord-hunter-difficulty', difficulty)
-    
+
     // Apply settings to game store
     setPlayerName_store(playerName.trim())
     setDifficulty_store(difficulty)
     setAudioVolume_store(audioVolume / 100)
-    
+
     onStartGame()
   }
 
@@ -149,10 +149,10 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
 
             <div className="space-y-4 text-sm text-white/90">
               <p>
-                Utforsk de magiske norske fjordene med din båt! Fisk, skyt mål, 
+                Utforsk de magiske norske fjordene med din båt! Fisk, skyt mål,
                 og samle skatter mens du navigerer gjennom vakre landskap.
               </p>
-              
+
               <div className="space-y-2">
                 <h3 className="font-semibold text-white">Kontroller:</h3>
                 <div className="space-y-1 text-xs">
@@ -168,7 +168,7 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
               <div className="space-y-2">
                 <h3 className="font-semibold text-white">Mål:</h3>
                 <div className="text-xs">
-                  Samle poeng ved å fiske, treffe mål og finne skatter. 
+                  Samle poeng ved å fiske, treffe mål og finne skatter.
                   Bygg opp kombo for høyere poengmultiplikator!
                 </div>
               </div>
@@ -193,7 +193,7 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
       <div className="w-full flex justify-center mb-6">
         <MenuScoreboard />
       </div>
-      
+
       <div className="text-center space-y-6">
         {/* Game Title */}
         <div className="space-y-3">
@@ -219,7 +219,7 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
                 placeholder="Skriv inn ditt navn..."
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                className="bg-white/10 border-white/20 text-white placeholder-white/50"
+                className="bg-blue-700/10 border-white/20 text-white placeholder-white/50"
                 maxLength={20}
               />
             </div>
@@ -241,7 +241,7 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
               <Button
                 onClick={onShowLeaderboard}
                 variant="outline"
-                className="w-full border-white/20 text-white hover:bg-white/10"
+                className="w-full  bg-blue-700/10 border-white/20 text-white hover:text-white hover:bg-blue-700/60"
                 size="lg"
               >
                 <Trophy className="mr-2 h-5 w-5" />
@@ -251,7 +251,7 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
               <Button
                 onClick={() => setCurrentView('settings')}
                 variant="outline"
-                className="w-full border-white/20 text-white hover:bg-white/10"
+                className="w-full bg-blue-700/10 border-white/20 text-white hover:text-white hover:bg-blue-700/60"
                 size="lg"
               >
                 <Settings className="mr-2 h-5 w-5" />
@@ -261,7 +261,7 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
               <Button
                 onClick={() => setCurrentView('about')}
                 variant="outline"
-                className="w-full border-white/20 text-white hover:bg-white/10"
+                className="w-full bg-blue-700/10 border-white/20 text-white hover:text-white hover:bg-blue-700/60"
                 size="lg"
               >
                 <Info className="mr-2 h-5 w-5" />

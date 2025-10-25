@@ -2,8 +2,18 @@ import { create } from "zustand"
 import { ACHIEVEMENTS, type Achievement } from "@/lib/achievements"
 import type { GameStats } from "@/lib/achievements"
 
+// Enhanced sound system
+let soundManager: any = null
+
+if (typeof window !== 'undefined') {
+  import('@/hooks/use-sound-manager').then((module) => {
+    soundManager = new module.GameSoundManager()
+  })
+}
+
 interface GameState {
   score: number
+  highScore: number
   boatPosition: { x: number; y: number; z: number }
   boatRotation: { x: number; y: number; z: number; w: number }
   boatSpeed: number
@@ -26,10 +36,10 @@ interface GameState {
   sparkles: Array<{ id: string; position: [number, number, number] }>
   floatingTexts: Array<{ id: string; text: string; position: [number, number, number]; color: string }>
   // Shooting system
-  projectiles: Array<{ 
-    id: string; 
-    position: [number, number, number]; 
-    direction: [number, number, number]; 
+  projectiles: Array<{
+    id: string;
+    position: [number, number, number];
+    direction: [number, number, number];
     speed: number;
     startTime: number;
   }>
@@ -45,6 +55,20 @@ interface GameState {
   playNextTrack: () => void
   toggleAudio: () => void
   setAudioVolume: (volume: number) => void
+  // Sound effects methods
+  playSound: (soundKey: string, options?: { volume?: number; playbackRate?: number }) => void
+  playSoundEffect: {
+    shoot: () => void
+    hit: () => void
+    collectTreasure: () => void
+    collectCoin: () => void
+    achievement: () => void
+    unlock: () => void
+    bonus: () => void
+    notification: () => void
+    levelUp: () => void
+    gameOver: () => void
+  }
   setPlayerName: (name: string) => void
   setDifficulty: (difficulty: string) => void
   // Shooting system methods
@@ -53,6 +77,8 @@ interface GameState {
   setShowCrosshair: (show: boolean) => void
   setScore: (score: number) => void
   addScore: (points: number) => void
+  loadHighScore: () => Promise<void>
+  saveCurrentScore: () => Promise<void>
   setBoatPosition: (position: { x: number; y: number; z: number }) => void
   setBoatRotation: (rotation: { x: number; y: number; z: number; w: number }) => void
   setBoatSpeed: (speed: number) => void
@@ -63,6 +89,7 @@ interface GameState {
   incrementFishCaught: () => void
   incrementTargetsHit: () => void
   incrementCollectiblesFound: () => void
+  updateTimePlayed: (seconds: number) => void
   checkAchievements: () => void
   resetGame: () => void
   addExplosion: (position: [number, number, number], type: "hit" | "collect") => void
@@ -85,6 +112,7 @@ let currentAudio: HTMLAudioElement | null = null
 
 export const useGameStore = create<GameState>((set, get) => ({
   score: 0,
+  highScore: 0,
   boatPosition: { x: 0, y: 0, z: 0 },
   boatRotation: { x: 0, y: 0, z: 0, w: 1 },
   boatSpeed: 0,
@@ -135,6 +163,48 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ score: newScore })
     set((state) => ({ stats: { ...state.stats, score: newScore } }))
     get().checkAchievements()
+    
+    // Check if we have a new high score and save it immediately
+    if (newScore > state.highScore) {
+      set({ highScore: newScore })
+      get().saveCurrentScore()
+    }
+  },
+  loadHighScore: async () => {
+    if (typeof window === 'undefined') return
+    
+    try {
+      const { getTopScores } = await import('@/app/actions')
+      const topScores = await getTopScores(1)
+      
+      if (topScores && topScores.length > 0) {
+        set({ highScore: topScores[0].score })
+      }
+    } catch (error) {
+      console.error('Failed to load high score:', error)
+    }
+  },
+  saveCurrentScore: async () => {
+    if (typeof window === 'undefined') return
+    
+    const state = get()
+    if (!state.playerName) return // Don't save if no player name
+    
+    try {
+      const { saveHighScore } = await import('@/app/actions')
+      await saveHighScore({
+        playerName: state.playerName,
+        score: state.score,
+        timePlayed: state.stats.timePlayed,
+        fishCaught: state.stats.fishCaught,
+        targetsHit: state.stats.targetsHit,
+        collectiblesFound: state.stats.collectiblesFound,
+      })
+      
+      console.log(`Ny toppskår lagret: ${state.score}`)
+    } catch (error) {
+      console.error('Failed to save high score:', error)
+    }
   },
   setBoatPosition: (position) => set({ boatPosition: position }),
   setBoatRotation: (rotation) => set({ boatRotation: rotation }),
@@ -173,20 +243,36 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().incrementCombo()
     get().checkAchievements()
   },
+  updateTimePlayed: (seconds) => {
+    set((state) => ({ stats: { ...state.stats, timePlayed: seconds } }))
+  },
   checkAchievements: () => {
     const state = get()
     const stats = state.stats
+    let hasNewAchievement = false
+    let newAchievement = null
 
     ACHIEVEMENTS.forEach((achievement) => {
       if (!state.unlockedAchievements.includes(achievement.id) && achievement.condition(stats)) {
+        hasNewAchievement = true
+        newAchievement = achievement
+
         set((state) => ({
           unlockedAchievements: [...state.unlockedAchievements, achievement.id],
           lastUnlockedAchievement: achievement,
         }))
       }
     })
+
+    // Clear last achievement after a delay to prevent repeated notifications
+    if (hasNewAchievement) {
+      setTimeout(() => {
+        set({ lastUnlockedAchievement: null })
+      }, 2000)
+    }
   },
-  resetGame: () =>
+  resetGame: () => {
+    const currentHighScore = get().highScore
     set({
       score: 0,
       stats: { score: 0, fishCaught: 0, targetsHit: 0, collectiblesFound: 0, timePlayed: 0, topSpeed: 0 },
@@ -200,7 +286,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       floatingTexts: [],
       projectiles: [],
       showCrosshair: false,
-    }),
+    })
+    
+    // Load high score if we don't have one yet
+    if (currentHighScore === 0) {
+      get().loadHighScore()
+    }
+  },
   addExplosion: (position, type) => {
     const id = `explosion-${Date.now()}-${Math.random()}`
     set((state) => ({ explosions: [...state.explosions, { id, position, type }] }))
@@ -250,7 +342,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         document.removeEventListener('keydown', startAudioOnInteraction)
         document.removeEventListener('touchstart', startAudioOnInteraction)
       }
-      
+
       // Listen for any user interaction to start audio
       document.addEventListener('click', startAudioOnInteraction)
       document.addEventListener('keydown', startAudioOnInteraction)
@@ -259,24 +351,24 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   playNextTrack: () => {
     if (typeof window === 'undefined') return
-    
+
     // Stop current audio if playing
     if (currentAudio) {
       currentAudio.pause()
       currentAudio.removeEventListener('ended', get().playNextTrack)
     }
-    
+
     // Select random track (or the only available one)
-    const randomIndex = MUSIC_TRACKS.length > 1 
+    const randomIndex = MUSIC_TRACKS.length > 1
       ? Math.floor(Math.random() * MUSIC_TRACKS.length)
       : 0
     const trackPath = MUSIC_TRACKS[randomIndex]
-    
+
     // Create new audio element
     currentAudio = new Audio(trackPath)
     currentAudio.volume = get().audioVolume
     currentAudio.loop = false
-    
+
     // Set up event listeners
     currentAudio.addEventListener('ended', () => {
       // Small delay before next track
@@ -286,13 +378,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       }, 2000)
     })
-    
+
     currentAudio.addEventListener('canplay', () => {
       if (get().isAudioPlaying && currentAudio) {
         currentAudio.play().catch(console.error)
       }
     })
-    
+
     currentAudio.addEventListener('error', (e) => {
       console.error('Audio error:', e)
       // Try next track after error
@@ -302,10 +394,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       }, 1000)
     })
-    
-    set({ 
+
+    set({
       currentTrack: trackPath,
-      isAudioPlaying: true 
+      isAudioPlaying: true
     })
   },
   toggleAudio: () => {
@@ -331,8 +423,35 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (currentAudio) {
       currentAudio.volume = volume
     }
+    if (soundManager) {
+      soundManager.setVolume(volume)
+    }
   },
-  setPlayerName: (name) => set({ playerName: name }),
+  // Sound effects methods
+  playSound: (soundKey, options) => {
+    if (soundManager) {
+      soundManager.play(soundKey, options)
+    }
+  },
+  playSoundEffect: {
+    shoot: () => get().playSound('shoot', { volume: 0.4 }),
+    hit: () => get().playSound('hit', { volume: 0.6 }),
+    collectTreasure: () => get().playSound('collect_treasure', { volume: 0.8 }),
+    collectCoin: () => get().playSound('collect_coin', { volume: 0.6 }),
+    achievement: () => get().playSound('achievement'),
+    unlock: () => get().playSound('unlock'),
+    bonus: () => get().playSound('bonus'),
+    notification: () => get().playSound('notification'),
+    levelUp: () => get().playSound('level_up', { volume: 0.8 }),
+    gameOver: () => get().playSound('game_over', { volume: 0.7 }),
+  },
+  setPlayerName: (name) => {
+    set({ playerName: name })
+    // Load high score when player name is set
+    if (name.trim()) {
+      get().loadHighScore()
+    }
+  },
   setDifficulty: (difficulty) => set({ difficulty }),
   // Shooting system methods
   addProjectile: (position, direction) => {
@@ -341,13 +460,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       id,
       position,
       direction,
-      speed: 50, // units per second
+      speed: 80, // Økt hastighet for bedre skyting på flyvende objekter
       startTime: Date.now()
     }
     set((state) => ({ projectiles: [...state.projectiles, projectile] }))
-    
-    // Auto-remove projectile after 5 seconds
-    setTimeout(() => get().removeProjectile(id), 5000)
+
+    // Auto-remove projectile after 8 seconds (longer for higher speed)
+    setTimeout(() => get().removeProjectile(id), 8000)
   },
   removeProjectile: (id) => {
     set((state) => ({ projectiles: state.projectiles.filter((p) => p.id !== id) }))

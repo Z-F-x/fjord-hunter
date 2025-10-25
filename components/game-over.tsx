@@ -30,7 +30,7 @@ export function GameOver({
   const [playerName, setPlayerName] = useState("")
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  
+
   const storePlayerName = useGameStore((state) => state.playerName)
 
   const handleSave = async () => {
