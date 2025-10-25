@@ -15,18 +15,19 @@ export function FollowCamera() {
   useFrame(() => {
     if (!cameraRef.current) return
 
-    const offset = new THREE.Vector3(0, 6, 12)
+    // Increased distance for more zoomed out view
+    const offset = new THREE.Vector3(0, 12, 20)
     const rotationQuaternion = new THREE.Quaternion(boatRotation.x, boatRotation.y, boatRotation.z, boatRotation.w)
     offset.applyQuaternion(rotationQuaternion)
 
     const targetPosition = new THREE.Vector3(boatPosition.x, boatPosition.y, boatPosition.z).add(offset)
 
-    cameraRef.current.position.lerp(targetPosition, 0.1)
+    cameraRef.current.position.lerp(targetPosition, 0.08)
 
-    // Look at boat
-    const lookAtTarget = new THREE.Vector3(boatPosition.x, boatPosition.y + 1, boatPosition.z)
+    // Look at boat with slight forward offset for better view
+    const lookAtTarget = new THREE.Vector3(boatPosition.x, boatPosition.y + 2, boatPosition.z)
     cameraRef.current.lookAt(lookAtTarget)
   })
 
-  return <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 8, 15]} fov={75} />
+  return <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 15, 25]} fov={60} />
 }

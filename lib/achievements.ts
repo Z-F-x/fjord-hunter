@@ -83,7 +83,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "speed_demon",
-    name: "Fartsdemon",
+    name: "Fartsfantom!",
     description: "Nå 50 km/t",
     icon: "⚡",
     condition: (stats) => stats.topSpeed >= 50,

@@ -25,7 +25,7 @@ export default function GameScene() {
   return (
     <div className="h-screen w-full">
       <Canvas shadows>
-        <fog attach="fog" args={["#87CEEB", 50, 400]} />
+        <fog attach="fog" args={["#87CEEB", 80, 600]} />
 
         <FollowCamera />
 
@@ -33,8 +33,20 @@ export default function GameScene() {
           <Sky sunPosition={[100, 20, 100]} />
           <Environment preset="sunset" />
 
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} castShadow shadow-mapSize={[1024, 1024]} />
+          <ambientLight intensity={0.4} />
+          <directionalLight 
+            position={[50, 80, 20]} 
+            intensity={1.2} 
+            castShadow 
+            shadow-mapSize={[2048, 2048]}
+            shadow-camera-far={200}
+            shadow-camera-left={-50}
+            shadow-camera-right={50}
+            shadow-camera-top={50}
+            shadow-camera-bottom={-50}
+          />
+          {/* Additional light for better ocean visibility */}
+          <pointLight position={[0, 15, 0]} intensity={0.3} color="#ffffff" />
 
           <Physics gravity={[0, -9.81, 0]}>
             <Ocean />
