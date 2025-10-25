@@ -12,7 +12,7 @@ import { AchievementNotification } from "./achievement-notification"
 import { DailyChallenge } from "./daily-challenge"
 import { AiTipsPanel } from "./ai-tips-panel"
 import { MobileControls } from "./mobile-controls"
-import { Trophy, Pause, Play, Award, ChevronDown, ChevronUp } from "lucide-react"
+import { Trophy, Pause, Play, Award, ChevronDown, ChevronUp, Volume2, VolumeX } from "lucide-react"
 import { calculateLevel, getLevelProgress } from "@/lib/achievements"
 import type { Achievement } from "@/lib/achievements"
 import { GameInfo } from "./game-info"
@@ -31,6 +31,11 @@ export function GameUI() {
   const stats = useGameStore((state) => state.stats)
   const combo = useGameStore((state) => state.combo)
   const multiplier = useGameStore((state) => state.multiplier)
+  const isAudioPlaying = useGameStore((state) => state.isAudioPlaying)
+  const currentTrack = useGameStore((state) => state.currentTrack)
+  const initializeAudio = useGameStore((state) => state.initializeAudio)
+  const toggleAudio = useGameStore((state) => state.toggleAudio)
+  const [showAudioPrompt, setShowAudioPrompt] = useState(true)
 
   const level = calculateLevel(score)
   const levelProgress = getLevelProgress(score)
@@ -46,6 +51,18 @@ export function GameUI() {
 
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  useEffect(() => {
+    // Initialize audio system when component mounts
+    initializeAudio()
+  }, [initializeAudio])
+
+  useEffect(() => {
+    // Hide audio prompt when music starts playing
+    if (isAudioPlaying && currentTrack) {
+      setShowAudioPrompt(false)
+    }
+  }, [isAudioPlaying, currentTrack])
 
   useEffect(() => {
     if (isPaused || showGameOver) return
@@ -113,6 +130,15 @@ export function GameUI() {
           </div>
         </div>
 
+        {/* Audio prompt for autoplay */}
+        {showAudioPrompt && !isAudioPlaying && (
+          <div className="absolute left-1/2 top-20 -translate-x-1/2 animate-pulse">
+            <div className="rounded-lg bg-blue-600/80 px-4 py-2 text-center shadow-lg backdrop-blur-sm">
+              <div className="text-sm font-medium text-white">🎵 Klikk hvor som helst for å starte musikk</div>
+            </div>
+          </div>
+        )}
+
         {/* AI Sidebar - Hidden on mobile by default, shows as overlay when opened */}
         <div className={`absolute right-2 top-2 space-y-2 ${isMobile ? 'max-w-xs' : ''}`}>
           {!isMobile && (
@@ -120,9 +146,10 @@ export function GameUI() {
               onClick={() => setShowSidebar(!showSidebar)}
               className="pointer-events-auto w-full bg-black/60 hover:bg-black/70"
               size="sm"
+              title={showSidebar ? "Skjul AI innhold" : "Vis AI innhold"}
             >
               {showSidebar ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              <span className="ml-2">AI Innhold</span>
+              <span className="ml-2">{showSidebar ? 'Skjul AI Tips' : 'Vis AI Tips'}</span>
             </Button>
           )}
 
@@ -210,40 +237,56 @@ export function GameUI() {
           <Button
             onClick={() => setShowAchievements(true)}
             className={`pointer-events-auto bg-purple-600 hover:bg-purple-700 ${
-              isMobile ? 'p-2' : 'size-lg'
+              isMobile ? 'p-2' : 'px-4 py-2'
             }`}
             size={isMobile ? "sm" : "lg"}
           >
             <Award className={`${isMobile ? 'h-4 w-4' : 'mr-2 h-5 w-5'}`} />
-            {!isMobile && 'Achievements'}
+            {!isMobile && 'Prestasjoner'}
           </Button>
           <Button
             onClick={() => setShowLeaderboard(true)}
             className={`pointer-events-auto bg-yellow-600 hover:bg-yellow-700 ${
-              isMobile ? 'p-2' : 'size-lg'
+              isMobile ? 'p-2' : 'px-4 py-2'
             }`}
             size={isMobile ? "sm" : "lg"}
           >
             <Trophy className={`${isMobile ? 'h-4 w-4' : 'mr-2 h-5 w-5'}`} />
-            {!isMobile && 'Leaderboard'}
+            {!isMobile && 'Toppscorer'}
           </Button>
           <Button
             onClick={() => setIsPaused(!isPaused)}
             className={`pointer-events-auto bg-blue-600 hover:bg-blue-700 ${
-              isMobile ? 'p-2' : 'size-lg'
+              isMobile ? 'p-2' : 'px-4 py-2'
             }`}
             size={isMobile ? "sm" : "lg"}
+            title={isPaused ? "Fortsett spillet" : "Pause spillet"}
           >
-            {isPaused ? <Play className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} /> : <Pause className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />}
+            {isPaused ? <Play className={`${isMobile ? 'h-4 w-4' : 'mr-1 h-5 w-5'}`} /> : <Pause className={`${isMobile ? 'h-4 w-4' : 'mr-1 h-5 w-5'}`} />}
+            {!isMobile && (isPaused ? 'Fortsett' : 'Pause')}
+          </Button>
+          <Button
+            onClick={toggleAudio}
+            className={`pointer-events-auto ${
+              isAudioPlaying ? 'bg-green-600 hover:bg-green-700' : 
+              currentTrack ? 'bg-yellow-600 hover:bg-yellow-700' : 
+              'bg-blue-600 hover:bg-blue-700 animate-pulse'
+            } ${isMobile ? 'p-2' : 'px-4 py-2'}`}
+            size={isMobile ? "sm" : "lg"}
+            title={!currentTrack ? "Klikk for å starte musikk" : isAudioPlaying ? "Pause musikk" : "Start musikk"}
+          >
+            {isAudioPlaying ? <Volume2 className={`${isMobile ? 'h-4 w-4' : 'mr-1 h-5 w-5'}`} /> : <VolumeX className={`${isMobile ? 'h-4 w-4' : 'mr-1 h-5 w-5'}`} />}
+            {!isMobile && (isAudioPlaying ? 'Musikk På' : 'Musikk Av')}
           </Button>
           <Button
             onClick={handleEndGame}
             className={`pointer-events-auto bg-red-600 hover:bg-red-700 ${
-              isMobile ? 'p-2' : 'size-lg'
+              isMobile ? 'p-2' : 'px-4 py-2'
             }`}
             size={isMobile ? "sm" : "lg"}
+            title="Avslutt spillet"
           >
-            {isMobile ? '✕' : 'Avslutt'}
+            {isMobile ? '✕' : 'Avslutt Spill'}
           </Button>
         </div>
 
@@ -251,10 +294,11 @@ export function GameUI() {
         {isMobile && (
           <Button
             onClick={() => setShowSidebar(!showSidebar)}
-            className="pointer-events-auto absolute right-2 bottom-20 bg-black/60 hover:bg-black/70 p-2"
+            className="pointer-events-auto absolute right-2 bottom-20 bg-black/60 hover:bg-black/70 px-3 py-2"
             size="sm"
+            title="Vis AI tips og innhold"
           >
-            AI
+            <span className="text-xs font-medium">AI Tips</span>
           </Button>
         )}
       </div>

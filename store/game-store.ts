@@ -25,6 +25,19 @@ interface GameState {
   explosions: Array<{ id: string; position: [number, number, number]; type: "hit" | "collect" }>
   sparkles: Array<{ id: string; position: [number, number, number] }>
   floatingTexts: Array<{ id: string; text: string; position: [number, number, number]; color: string }>
+  // Player data
+  playerName: string
+  difficulty: string
+  // Audio system
+  currentTrack: string | null
+  isAudioPlaying: boolean
+  audioVolume: number
+  initializeAudio: () => void
+  playNextTrack: () => void
+  toggleAudio: () => void
+  setAudioVolume: (volume: number) => void
+  setPlayerName: (name: string) => void
+  setDifficulty: (difficulty: string) => void
   setScore: (score: number) => void
   addScore: (points: number) => void
   setBoatPosition: (position: { x: number; y: number; z: number }) => void
@@ -48,6 +61,14 @@ interface GameState {
   incrementCombo: () => void
   resetCombo: () => void
 }
+
+// Audio system constants
+const MUSIC_TRACKS = [
+  '/Color_Index_-_Intervals_Open_Spect_(getmp3.pro).mp3',
+  '/TempleOS Hymn Risen [Synthwave Remix] [TubeRipper.com].mp3'
+]
+
+let currentAudio: HTMLAudioElement | null = null
 
 export const useGameStore = create<GameState>((set, get) => ({
   score: 0,
@@ -79,6 +100,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   explosions: [],
   sparkles: [],
   floatingTexts: [],
+  // Player data
+  playerName: '',
+  difficulty: 'normal',
+  // Audio system
+  currentTrack: null,
+  isAudioPlaying: false,
+  audioVolume: 0.3,
   setScore: (score) => {
     set({ score })
     set((state) => ({ stats: { ...state.stats, score } }))
@@ -193,4 +221,97 @@ export const useGameStore = create<GameState>((set, get) => ({
   resetCombo: () => {
     set({ combo: 0, multiplier: 1 })
   },
+  // Audio system methods
+  initializeAudio: () => {
+    if (typeof window !== 'undefined') {
+      // Set up user interaction listener for autoplay
+      const startAudioOnInteraction = () => {
+        get().playNextTrack()
+        // Remove listeners after first interaction
+        document.removeEventListener('click', startAudioOnInteraction)
+        document.removeEventListener('keydown', startAudioOnInteraction)
+        document.removeEventListener('touchstart', startAudioOnInteraction)
+      }
+      
+      // Listen for any user interaction to start audio
+      document.addEventListener('click', startAudioOnInteraction)
+      document.addEventListener('keydown', startAudioOnInteraction)
+      document.addEventListener('touchstart', startAudioOnInteraction)
+    }
+  },
+  playNextTrack: () => {
+    if (typeof window === 'undefined') return
+    
+    // Stop current audio if playing
+    if (currentAudio) {
+      currentAudio.pause()
+      currentAudio.removeEventListener('ended', get().playNextTrack)
+    }
+    
+    // Select random track
+    const randomIndex = Math.floor(Math.random() * MUSIC_TRACKS.length)
+    const trackPath = MUSIC_TRACKS[randomIndex]
+    
+    // Create new audio element
+    currentAudio = new Audio(trackPath)
+    currentAudio.volume = get().audioVolume
+    currentAudio.loop = false
+    
+    // Set up event listeners
+    currentAudio.addEventListener('ended', () => {
+      // Small delay before next track
+      setTimeout(() => {
+        if (get().isAudioPlaying) {
+          get().playNextTrack()
+        }
+      }, 2000)
+    })
+    
+    currentAudio.addEventListener('canplay', () => {
+      if (get().isAudioPlaying && currentAudio) {
+        currentAudio.play().catch(console.error)
+      }
+    })
+    
+    currentAudio.addEventListener('error', (e) => {
+      console.error('Audio error:', e)
+      // Try next track after error
+      setTimeout(() => {
+        if (get().isAudioPlaying) {
+          get().playNextTrack()
+        }
+      }, 1000)
+    })
+    
+    set({ 
+      currentTrack: trackPath,
+      isAudioPlaying: true 
+    })
+  },
+  toggleAudio: () => {
+    const state = get()
+    if (state.isAudioPlaying) {
+      // Stop audio
+      if (currentAudio) {
+        currentAudio.pause()
+      }
+      set({ isAudioPlaying: false })
+    } else {
+      // Start audio
+      set({ isAudioPlaying: true })
+      if (currentAudio) {
+        currentAudio.play().catch(console.error)
+      } else {
+        get().playNextTrack()
+      }
+    }
+  },
+  setAudioVolume: (volume) => {
+    set({ audioVolume: volume })
+    if (currentAudio) {
+      currentAudio.volume = volume
+    }
+  },
+  setPlayerName: (name) => set({ playerName: name }),
+  setDifficulty: (difficulty) => set({ difficulty }),
 }))

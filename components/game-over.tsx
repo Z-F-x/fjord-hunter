@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { saveHighScore } from "@/app/actions"
 import { Trophy } from "lucide-react"
+import { useGameStore } from "@/store/game-store"
 
 interface GameOverProps {
   score: number
@@ -29,6 +30,8 @@ export function GameOver({
   const [playerName, setPlayerName] = useState("")
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  
+  const storePlayerName = useGameStore((state) => state.playerName)
 
   const handleSave = async () => {
     if (!playerName.trim()) return
@@ -48,6 +51,15 @@ export function GameOver({
       setSaved(true)
     }
   }
+
+  useEffect(() => {
+    // Use player name from store if available
+    if (storePlayerName && !saved) {
+      setPlayerName(storePlayerName)
+      // Auto-save if we have a player name
+      setTimeout(() => handleSave(), 100) // Small delay to ensure playerName is set
+    }
+  }, [storePlayerName, saved])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
