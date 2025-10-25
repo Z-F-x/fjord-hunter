@@ -28,6 +28,8 @@ export function GameUI() {
   const score = useGameStore((state) => state.score)
   const boatSpeed = useGameStore((state) => state.boatSpeed)
   const stats = useGameStore((state) => state.stats)
+  const combo = useGameStore((state) => state.combo)
+  const multiplier = useGameStore((state) => state.multiplier)
 
   const level = calculateLevel(score)
   const levelProgress = getLevelProgress(score)
@@ -81,6 +83,17 @@ export function GameUI() {
       <MobileControls />
 
       <div className="pointer-events-none absolute inset-0">
+        {combo > 1 && (
+          <div className="absolute left-1/2 top-24 -translate-x-1/2 animate-pulse">
+            <div className="rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 px-6 py-3 text-center shadow-lg">
+              <div className="text-4xl font-bold text-white">{combo}x COMBO!</div>
+              {multiplier > 1 && (
+                <div className="text-xl font-semibold text-white/90">{multiplier}x Poeng Multiplier</div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="absolute left-1/2 top-6 -translate-x-1/2">
           <div className="pointer-events-auto">
             <GameInfo />
@@ -110,6 +123,7 @@ export function GameUI() {
             <div className="space-y-2 text-white">
               <div className="text-sm font-medium text-white/70">POENG</div>
               <div className="text-4xl font-bold">{score}</div>
+              {multiplier > 1 && <div className="text-lg font-semibold text-yellow-400">{multiplier}x Multiplier</div>}
               <div className="mt-2">
                 <div className="mb-1 flex items-center justify-between text-xs">
                   <span className="text-white/70">Level {level}</span>

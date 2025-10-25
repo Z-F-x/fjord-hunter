@@ -19,6 +19,12 @@ interface GameState {
   stats: GameStats
   unlockedAchievements: string[]
   lastUnlockedAchievement: Achievement | null
+  combo: number
+  multiplier: number
+  lastActionTime: number
+  explosions: Array<{ id: string; position: [number, number, number]; type: "hit" | "collect" }>
+  sparkles: Array<{ id: string; position: [number, number, number] }>
+  floatingTexts: Array<{ id: string; text: string; position: [number, number, number]; color: string }>
   setScore: (score: number) => void
   addScore: (points: number) => void
   setBoatPosition: (position: { x: number; y: number; z: number }) => void
@@ -33,6 +39,14 @@ interface GameState {
   incrementCollectiblesFound: () => void
   checkAchievements: () => void
   resetGame: () => void
+  addExplosion: (position: [number, number, number], type: "hit" | "collect") => void
+  removeExplosion: (id: string) => void
+  addSparkle: (position: [number, number, number]) => void
+  removeSparkle: (id: string) => void
+  addFloatingText: (text: string, position: [number, number, number], color: string) => void
+  removeFloatingText: (id: string) => void
+  incrementCombo: () => void
+  resetCombo: () => void
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -59,13 +73,21 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   unlockedAchievements: [],
   lastUnlockedAchievement: null,
+  combo: 0,
+  multiplier: 1,
+  lastActionTime: 0,
+  explosions: [],
+  sparkles: [],
+  floatingTexts: [],
   setScore: (score) => {
     set({ score })
     set((state) => ({ stats: { ...state.stats, score } }))
     get().checkAchievements()
   },
   addScore: (points) => {
-    const newScore = get().score + points
+    const state = get()
+    const multipliedPoints = Math.floor(points * state.multiplier)
+    const newScore = state.score + multipliedPoints
     set({ score: newScore })
     set((state) => ({ stats: { ...state.stats, score: newScore } }))
     get().checkAchievements()
@@ -94,14 +116,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   incrementFishCaught: () => {
     set((state) => ({ stats: { ...state.stats, fishCaught: state.stats.fishCaught + 1 } }))
+    get().incrementCombo()
     get().checkAchievements()
   },
   incrementTargetsHit: () => {
     set((state) => ({ stats: { ...state.stats, targetsHit: state.stats.targetsHit + 1 } }))
+    get().incrementCombo()
     get().checkAchievements()
   },
   incrementCollectiblesFound: () => {
     set((state) => ({ stats: { ...state.stats, collectiblesFound: state.stats.collectiblesFound + 1 } }))
+    get().incrementCombo()
     get().checkAchievements()
   },
   checkAchievements: () => {
@@ -123,5 +148,49 @@ export const useGameStore = create<GameState>((set, get) => ({
       stats: { score: 0, fishCaught: 0, targetsHit: 0, collectiblesFound: 0, timePlayed: 0, topSpeed: 0 },
       unlockedAchievements: [],
       lastUnlockedAchievement: null,
+      combo: 0,
+      multiplier: 1,
+      lastActionTime: 0,
+      explosions: [],
+      sparkles: [],
+      floatingTexts: [],
     }),
+  addExplosion: (position, type) => {
+    const id = `explosion-${Date.now()}-${Math.random()}`
+    set((state) => ({ explosions: [...state.explosions, { id, position, type }] }))
+  },
+  removeExplosion: (id) => {
+    set((state) => ({ explosions: state.explosions.filter((e) => e.id !== id) }))
+  },
+  addSparkle: (position) => {
+    const id = `sparkle-${Date.now()}-${Math.random()}`
+    set((state) => ({ sparkles: [...state.sparkles, { id, position }] }))
+  },
+  removeSparkle: (id) => {
+    set((state) => ({ sparkles: state.sparkles.filter((s) => s.id !== id) }))
+  },
+  addFloatingText: (text, position, color) => {
+    const id = `text-${Date.now()}-${Math.random()}`
+    set((state) => ({ floatingTexts: [...state.floatingTexts, { id, text, position, color }] }))
+    setTimeout(() => get().removeFloatingText(id), 2000)
+  },
+  removeFloatingText: (id) => {
+    set((state) => ({ floatingTexts: state.floatingTexts.filter((t) => t.id !== id) }))
+  },
+  incrementCombo: () => {
+    const now = Date.now()
+    const state = get()
+    const timeSinceLastAction = now - state.lastActionTime
+
+    if (timeSinceLastAction < 3000) {
+      const newCombo = state.combo + 1
+      const newMultiplier = Math.min(1 + Math.floor(newCombo / 5) * 0.5, 5)
+      set({ combo: newCombo, multiplier: newMultiplier, lastActionTime: now })
+    } else {
+      set({ combo: 1, multiplier: 1, lastActionTime: now })
+    }
+  },
+  resetCombo: () => {
+    set({ combo: 0, multiplier: 1 })
+  },
 }))

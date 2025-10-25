@@ -49,9 +49,9 @@ export function Boat() {
   useFrame(() => {
     if (!boatRef.current) return
 
-    const impulseStrength = 20.0 // Increased for faster acceleration
-    const baseRotationSpeed = 0.03 // Base rotation speed, will be multiplied by velocity for natural steering
+    const impulseStrength = 35.0 // Slightly increased for better acceleration
     const maxSpeed = 300
+    const baseTurnRate = 2.5 // Direct angular velocity instead of torque
 
     const velocity = boatRef.current.linvel()
     const currentSpeed = Math.sqrt(velocity.x ** 2 + velocity.z ** 2)
@@ -66,23 +66,46 @@ export function Boat() {
       new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w),
     )
 
-    const speedFactor = Math.min(currentSpeed / 20, 1) // Normalize speed for turning
-    const turnRate = baseRotationSpeed + speedFactor * 0.08 // Faster turning when moving
+    const speedFactor = Math.min(currentSpeed / 20, 1.5)
+    const effectiveTurnRate = baseTurnRate * (0.6 + speedFactor * 0.4) // Smoother scaling
+
+    const angVel = boatRef.current.angvel()
 
     if (isLeft) {
-      const newRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(euler.x, euler.y + turnRate, euler.z))
-      boatRef.current.setRotation(newRotation, true)
-    }
-    if (isRight) {
-      const newRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(euler.x, euler.y - turnRate, euler.z))
-      boatRef.current.setRotation(newRotation, true)
+      // Set angular velocity directly for immediate response
+      boatRef.current.setAngvel(
+        {
+          x: angVel.x * 0.9,
+          y: effectiveTurnRate, // Direct control
+          z: angVel.z * 0.9,
+        },
+        true,
+      )
+    } else if (isRight) {
+      boatRef.current.setAngvel(
+        {
+          x: angVel.x * 0.9,
+          y: -effectiveTurnRate, // Direct control
+          z: angVel.z * 0.9,
+        },
+        true,
+      )
+    } else {
+      boatRef.current.setAngvel(
+        {
+          x: angVel.x * 0.7,
+          y: angVel.y * 0.7, // Much stronger damping
+          z: angVel.z * 0.7,
+        },
+        true,
+      )
     }
 
     if (isForward && currentSpeed < maxSpeed) {
       const forwardDir = new THREE.Vector3(0, 0, -1).applyEuler(euler)
       boatRef.current.applyImpulse({ x: forwardDir.x * impulseStrength, y: 0, z: forwardDir.z * impulseStrength }, true)
     }
-    if (isBackward && currentSpeed < maxSpeed) {
+    if (isBackward && currentSpeed < maxSpeed / 2) {
       const forwardDir = new THREE.Vector3(0, 0, -1).applyEuler(euler)
       boatRef.current.applyImpulse(
         { x: -forwardDir.x * impulseStrength * 0.5, y: 0, z: -forwardDir.z * impulseStrength * 0.5 },
@@ -91,7 +114,7 @@ export function Boat() {
     }
 
     if (!isForward && !isBackward && currentSpeed > 0.5) {
-      const dragForce = 0.95
+      const dragForce = 0.98 // Gentle drag for smooth deceleration
       boatRef.current.setLinvel({ x: velocity.x * dragForce, y: velocity.y, z: velocity.z * dragForce }, true)
     }
 
@@ -115,8 +138,8 @@ export function Boat() {
       boatRef.current.setLinvel({ x: velocity.x, y: 0, z: velocity.z }, true)
     }
 
-    if (Math.abs(euler.x) > 0.15 || Math.abs(euler.z) > 0.15) {
-      const stabilizationForce = 2.5
+    if (Math.abs(euler.x) > 0.1 || Math.abs(euler.z) > 0.1) {
+      const stabilizationForce = 3.5 // Increased for better stability
       boatRef.current.applyTorqueImpulse(
         {
           x: -euler.x * stabilizationForce,
@@ -147,8 +170,8 @@ export function Boat() {
       position={[0, 1.5, 0]}
       colliders="cuboid"
       mass={100}
-      linearDamping={2.5}
-      angularDamping={5}
+      linearDamping={1.0} // Reduced for even smoother movement
+      angularDamping={2.2} // Increased from 1.8 for better turn control
     >
       <group>
         <group position={[0, 0, recoilOffset]}>

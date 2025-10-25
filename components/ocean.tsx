@@ -4,9 +4,11 @@ import { useRef, useMemo } from "react"
 import { useFrame } from "@react-three/fiber"
 import { RigidBody } from "@react-three/rapier"
 import * as THREE from "three"
+import { useGameStore } from "@/store/game-store"
 
 export function Ocean() {
   const waterRef = useRef<THREE.Mesh>(null)
+  const boatPosition = useGameStore((state) => state.boatPosition)
 
   const waterMaterial = useMemo(() => {
     return new THREE.ShaderMaterial({
@@ -22,7 +24,6 @@ export function Ocean() {
         void main() {
           vUv = uv;
           
-          // Create wave patterns
           vec3 pos = position;
           float wave1 = sin(pos.x * 0.5 + time * 2.0) * 0.3;
           float wave2 = sin(pos.y * 0.3 + time * 1.5) * 0.25;
@@ -40,7 +41,6 @@ export function Ocean() {
         varying float vElevation;
         
         void main() {
-          // Add foam on wave peaks
           vec3 finalColor = color;
           if (vElevation > 0.4) {
             finalColor = mix(color, vec3(0.9, 0.95, 1.0), (vElevation - 0.4) * 2.0);
@@ -58,20 +58,24 @@ export function Ocean() {
     if (waterMaterial) {
       waterMaterial.uniforms.time.value = clock.getElapsedTime()
     }
+
+    if (waterRef.current && boatPosition) {
+      waterRef.current.position.x = boatPosition.x
+      waterRef.current.position.z = boatPosition.z
+    }
   })
 
   return (
     <>
-      {/* Water surface with animated waves */}
       <mesh ref={waterRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[200, 200, 100, 100]} />
+        <planeGeometry args={[2000, 2000, 50, 50]} />
         <primitive object={waterMaterial} attach="material" />
       </mesh>
 
-      {/* Invisible physics floor */}
+      {/* Invisible physics floor that follows the boat */}
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh position={[0, 0, 0]} visible={false}>
-          <boxGeometry args={[200, 1, 200]} />
+        <mesh position={[boatPosition?.x || 0, 0, boatPosition?.z || 0]} visible={false}>
+          <boxGeometry args={[2000, 1, 2000]} />
         </mesh>
       </RigidBody>
     </>

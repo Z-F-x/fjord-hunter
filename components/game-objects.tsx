@@ -1,72 +1,124 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
+import { useFrame } from "@react-three/fiber"
 import { Fish } from "./fish"
 import { Target } from "./target"
 import { Collectible } from "./collectible"
+import { useGameStore } from "@/store/game-store"
 
 export function GameObjects() {
+  const boatPosition = useGameStore((state) => state.boatPosition)
   const [fish, setFish] = useState<Array<{ id: number; x: number; z: number }>>([])
   const [targets, setTargets] = useState<Array<{ id: number; x: number; y: number; z: number }>>([])
   const [collectibles, setCollectibles] = useState<Array<{ id: number; x: number; z: number; type: string }>>([])
 
-  useEffect(() => {
-    // Spawn initial fish
-    const initialFish = Array.from({ length: 15 }, (_, i) => ({
-      id: i,
-      x: (Math.random() - 0.5) * 80,
-      z: (Math.random() - 0.5) * 80,
-    }))
-    setFish(initialFish)
+  const lastSpawnCheck = useRef(0)
 
-    // Spawn initial targets (birds)
-    const initialTargets = Array.from({ length: 8 }, (_, i) => ({
-      id: i,
-      x: (Math.random() - 0.5) * 100,
+  const spawnRadius = 150
+  const despawnRadius = 200
+
+  const spawnObjectsAroundBoat = () => {
+    if (!boatPosition) return
+
+    const newFish = Array.from({ length: 15 }, (_, i) => ({
+      id: Date.now() + i,
+      x: boatPosition.x + (Math.random() - 0.5) * spawnRadius * 2,
+      z: boatPosition.z + (Math.random() - 0.5) * spawnRadius * 2,
+    }))
+    setFish(newFish)
+
+    const newTargets = Array.from({ length: 8 }, (_, i) => ({
+      id: Date.now() + i + 1000,
+      x: boatPosition.x + (Math.random() - 0.5) * spawnRadius * 2,
       y: 5 + Math.random() * 10,
-      z: (Math.random() - 0.5) * 100,
+      z: boatPosition.z + (Math.random() - 0.5) * spawnRadius * 2,
     }))
-    setTargets(initialTargets)
+    setTargets(newTargets)
 
-    // Spawn collectibles
-    const initialCollectibles = Array.from({ length: 10 }, (_, i) => ({
-      id: i,
-      x: (Math.random() - 0.5) * 90,
-      z: (Math.random() - 0.5) * 90,
-      type: Math.random() > 0.5 ? "coin" : "star",
+    const newCollectibles = Array.from({ length: 12 }, (_, i) => ({
+      id: Date.now() + i + 2000,
+      x: boatPosition.x + (Math.random() - 0.5) * spawnRadius * 2,
+      z: boatPosition.z + (Math.random() - 0.5) * spawnRadius * 2,
+      type: Math.random() > 0.7 ? "star" : "coin",
     }))
-    setCollectibles(initialCollectibles)
+    setCollectibles(newCollectibles)
+  }
+
+  useEffect(() => {
+    spawnObjectsAroundBoat()
   }, [])
 
-  const removeFish = (id: number) => {
-    setFish((prev) => prev.filter((f) => f.id !== id))
-    // Respawn after delay
-    setTimeout(() => {
+  useFrame((_, delta) => {
+    if (!boatPosition) return
+
+    lastSpawnCheck.current += delta
+    if (lastSpawnCheck.current < 0.5) return
+    lastSpawnCheck.current = 0
+
+    setFish((prev) =>
+      prev.filter((f) => {
+        const distance = Math.sqrt((f.x - boatPosition.x) ** 2 + (f.z - boatPosition.z) ** 2)
+        return distance < despawnRadius
+      }),
+    )
+
+    setTargets((prev) =>
+      prev.filter((t) => {
+        const distance = Math.sqrt((t.x - boatPosition.x) ** 2 + (t.z - boatPosition.z) ** 2)
+        return distance < despawnRadius
+      }),
+    )
+
+    setCollectibles((prev) =>
+      prev.filter((c) => {
+        const distance = Math.sqrt((c.x - boatPosition.x) ** 2 + (c.z - boatPosition.z) ** 2)
+        return distance < despawnRadius
+      }),
+    )
+
+    if (fish.length < 12) {
       setFish((prev) => [
         ...prev,
         {
           id: Date.now(),
-          x: (Math.random() - 0.5) * 80,
-          z: (Math.random() - 0.5) * 80,
+          x: boatPosition.x + (Math.random() - 0.5) * spawnRadius * 2,
+          z: boatPosition.z + (Math.random() - 0.5) * spawnRadius * 2,
         },
       ])
-    }, 5000)
-  }
+    }
 
-  const removeTarget = (id: number) => {
-    setTargets((prev) => prev.filter((t) => t.id !== id))
-    // Respawn after delay
-    setTimeout(() => {
+    if (targets.length < 6) {
       setTargets((prev) => [
         ...prev,
         {
           id: Date.now(),
-          x: (Math.random() - 0.5) * 100,
+          x: boatPosition.x + (Math.random() - 0.5) * spawnRadius * 2,
           y: 5 + Math.random() * 10,
-          z: (Math.random() - 0.5) * 100,
+          z: boatPosition.z + (Math.random() - 0.5) * spawnRadius * 2,
         },
       ])
-    }, 8000)
+    }
+
+    if (collectibles.length < 10) {
+      setCollectibles((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          x: boatPosition.x + (Math.random() - 0.5) * spawnRadius * 2,
+          z: boatPosition.z + (Math.random() - 0.5) * spawnRadius * 2,
+          type: Math.random() > 0.7 ? "star" : "coin",
+        },
+      ])
+    }
+  })
+
+  const removeFish = (id: number) => {
+    setFish((prev) => prev.filter((f) => f.id !== id))
+  }
+
+  const removeTarget = (id: number) => {
+    setTargets((prev) => prev.filter((t) => t.id !== id))
   }
 
   const removeCollectible = (id: number) => {

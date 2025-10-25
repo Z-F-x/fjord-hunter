@@ -10,11 +10,23 @@ import { GameUI } from "./game-ui"
 import { FollowCamera } from "./follow-camera"
 import { GameObjects } from "./game-objects"
 import { UnderwaterEffect } from "./underwater-effect"
+import { ExplosionEffect } from "./explosion-effect"
+import { SparkleEffect } from "./sparkle-effect"
+import { FloatingText } from "./floating-text"
+import { useGameStore } from "@/store/game-store"
 
 export default function GameScene() {
+  const explosions = useGameStore((state) => state.explosions)
+  const sparkles = useGameStore((state) => state.sparkles)
+  const floatingTexts = useGameStore((state) => state.floatingTexts)
+  const removeExplosion = useGameStore((state) => state.removeExplosion)
+  const removeSparkle = useGameStore((state) => state.removeSparkle)
+
   return (
     <div className="h-screen w-full">
       <Canvas shadows>
+        <fog attach="fog" args={["#87CEEB", 50, 400]} />
+
         <FollowCamera />
 
         <Suspense fallback={null}>
@@ -29,6 +41,23 @@ export default function GameScene() {
             <Boat />
             <GameObjects />
           </Physics>
+
+          {explosions.map((explosion) => (
+            <ExplosionEffect
+              key={explosion.id}
+              position={explosion.position}
+              type={explosion.type}
+              onComplete={() => removeExplosion(explosion.id)}
+            />
+          ))}
+
+          {sparkles.map((sparkle) => (
+            <SparkleEffect key={sparkle.id} position={sparkle.position} onComplete={() => removeSparkle(sparkle.id)} />
+          ))}
+
+          {floatingTexts.map((text) => (
+            <FloatingText key={text.id} text={text.text} position={text.position} color={text.color} />
+          ))}
         </Suspense>
       </Canvas>
 
