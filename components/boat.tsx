@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber"
 import { RigidBody, type RapierRigidBody } from "@react-three/rapier"
 import { useKeyboardControls } from "@/hooks/use-keyboard-controls"
 import { useGameStore } from "@/store/game-store"
+import { useShootingEffects } from "@/lib/audio-effects"
 import * as THREE from "three"
 
 export function Boat() {
@@ -12,15 +13,54 @@ export function Boat() {
   const muzzleFlashRef = useRef<THREE.Mesh>(null)
   const { forward, backward, left, right, space, shift } = useKeyboardControls()
   const mobileControls = useGameStore((state) => state.mobileControls)
+  const { playShoot } = useShootingEffects()
   const setBoatPosition = useGameStore((state) => state.setBoatPosition)
   const setBoatRotation = useGameStore((state) => state.setBoatRotation)
   const setBoatSpeed = useGameStore((state) => state.setBoatSpeed)
   const setIsFishing = useGameStore((state) => state.setIsFishing)
   const setIsShooting = useGameStore((state) => state.setIsShooting)
   const setIsUnderwater = useGameStore((state) => state.setIsUnderwater)
+  const addProjectile = useGameStore((state) => state.addProjectile)
+  const setShowCrosshair = useGameStore((state) => state.setShowCrosshair)
 
   const [showMuzzleFlash, setShowMuzzleFlash] = useState(false)
   const [recoilOffset, setRecoilOffset] = useState(0)
+  const lastShotTime = useRef(0)
+  const shootCooldown = 300 // milliseconds between shots
+  
+  // Show crosshair when aiming (right mouse button or shift key)
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (e.button === 2) { // Right mouse button
+        setShowCrosshair(true)
+      }
+    }
+    
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 2) { // Right mouse button
+        setShowCrosshair(false)
+      }
+    }
+    
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault() // Prevent right-click context menu
+    }
+
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('contextmenu', handleContextMenu)
+    
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('contextmenu', handleContextMenu)
+    }
+  }, [setShowCrosshair])
+  
+  // Also show crosshair when shift is held (for keyboard players)
+  useEffect(() => {
+    setShowCrosshair(shift)
+  }, [shift, setShowCrosshair])
 
   useEffect(() => {
     if (space) {
@@ -31,9 +71,42 @@ export function Boat() {
 
   useEffect(() => {
     if (shift) {
+      const now = Date.now()
+      if (now - lastShotTime.current < shootCooldown) return
+      
+      lastShotTime.current = now
       setIsShooting(true)
       setShowMuzzleFlash(true)
       setRecoilOffset(-0.5)
+
+      // Play shooting sound
+      playShoot()
+
+      // Fire projectile from boat position
+      if (boatRef.current) {
+        const position = boatRef.current.translation()
+        const rotation = boatRef.current.rotation()
+        
+        // Calculate forward direction from boat rotation
+        const forward = new THREE.Vector3(0, 0, 1)
+        forward.applyQuaternion(new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w))
+        
+        // Adjust firing position to be in front of boat
+        const muzzlePos: [number, number, number] = [
+          position.x + forward.x * 2,
+          position.y + 1.5, // Height above boat
+          position.z + forward.z * 2
+        ]
+        
+        // Fire direction (slightly upward for realistic trajectory)
+        const fireDir: [number, number, number] = [
+          forward.x,
+          0.1, // Slight upward angle
+          forward.z
+        ]
+        
+        addProjectile(muzzlePos, fireDir)
+      }
 
       setTimeout(() => {
         setShowMuzzleFlash(false)
@@ -44,7 +117,7 @@ export function Boat() {
         setRecoilOffset(0)
       }, 200)
     }
-  }, [shift, setIsShooting])
+  }, [shift, setIsShooting, playShoot, addProjectile])
 
   useFrame(() => {
     if (!boatRef.current) return

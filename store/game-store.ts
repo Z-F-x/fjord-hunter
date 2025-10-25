@@ -25,6 +25,15 @@ interface GameState {
   explosions: Array<{ id: string; position: [number, number, number]; type: "hit" | "collect" }>
   sparkles: Array<{ id: string; position: [number, number, number] }>
   floatingTexts: Array<{ id: string; text: string; position: [number, number, number]; color: string }>
+  // Shooting system
+  projectiles: Array<{ 
+    id: string; 
+    position: [number, number, number]; 
+    direction: [number, number, number]; 
+    speed: number;
+    startTime: number;
+  }>
+  showCrosshair: boolean
   // Player data
   playerName: string
   difficulty: string
@@ -38,6 +47,10 @@ interface GameState {
   setAudioVolume: (volume: number) => void
   setPlayerName: (name: string) => void
   setDifficulty: (difficulty: string) => void
+  // Shooting system methods
+  addProjectile: (position: [number, number, number], direction: [number, number, number]) => void
+  removeProjectile: (id: string) => void
+  setShowCrosshair: (show: boolean) => void
   setScore: (score: number) => void
   addScore: (points: number) => void
   setBoatPosition: (position: { x: number; y: number; z: number }) => void
@@ -64,8 +77,8 @@ interface GameState {
 
 // Audio system constants
 const MUSIC_TRACKS = [
-  '/Color_Index_-_Intervals_Open_Spect_(getmp3.pro).mp3',
-  '/TempleOS Hymn Risen [Synthwave Remix] [TubeRipper.com].mp3'
+  '/Color_Index_-_Intervals_Open_Spect_(getmp3.pro).mp3'
+  // Note: Add more music tracks by placing them in the public/ directory
 ]
 
 let currentAudio: HTMLAudioElement | null = null
@@ -100,6 +113,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   explosions: [],
   sparkles: [],
   floatingTexts: [],
+  // Shooting system
+  projectiles: [],
+  showCrosshair: false,
   // Player data
   playerName: '',
   difficulty: 'normal',
@@ -182,6 +198,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       explosions: [],
       sparkles: [],
       floatingTexts: [],
+      projectiles: [],
+      showCrosshair: false,
     }),
   addExplosion: (position, type) => {
     const id = `explosion-${Date.now()}-${Math.random()}`
@@ -248,8 +266,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentAudio.removeEventListener('ended', get().playNextTrack)
     }
     
-    // Select random track
-    const randomIndex = Math.floor(Math.random() * MUSIC_TRACKS.length)
+    // Select random track (or the only available one)
+    const randomIndex = MUSIC_TRACKS.length > 1 
+      ? Math.floor(Math.random() * MUSIC_TRACKS.length)
+      : 0
     const trackPath = MUSIC_TRACKS[randomIndex]
     
     // Create new audio element
@@ -314,4 +334,23 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   setPlayerName: (name) => set({ playerName: name }),
   setDifficulty: (difficulty) => set({ difficulty }),
+  // Shooting system methods
+  addProjectile: (position, direction) => {
+    const id = `projectile-${Date.now()}-${Math.random()}`
+    const projectile = {
+      id,
+      position,
+      direction,
+      speed: 50, // units per second
+      startTime: Date.now()
+    }
+    set((state) => ({ projectiles: [...state.projectiles, projectile] }))
+    
+    // Auto-remove projectile after 5 seconds
+    setTimeout(() => get().removeProjectile(id), 5000)
+  },
+  removeProjectile: (id) => {
+    set((state) => ({ projectiles: state.projectiles.filter((p) => p.id !== id) }))
+  },
+  setShowCrosshair: (show) => set({ showCrosshair: show }),
 }))

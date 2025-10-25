@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Play, Settings, Trophy, Info, Volume2 } from "lucide-react"
 import { useGameStore } from "@/store/game-store"
+import { MenuScoreboard } from "@/components/menu-scoreboard"
 
 interface MainMenuProps {
   onStartGame: () => void
@@ -187,14 +188,19 @@ export function MainMenu({ onStartGame, onShowLeaderboard }: MainMenuProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-blue-900 to-blue-600 p-4">
-      <div className="text-center space-y-8">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-blue-900 to-blue-600 p-4 overflow-y-auto">
+      {/* Top Scoreboard */}
+      <div className="w-full flex justify-center mb-6">
+        <MenuScoreboard />
+      </div>
+      
+      <div className="text-center space-y-6">
         {/* Game Title */}
-        <div className="space-y-4">
-          <h1 className="text-6xl font-bold text-white drop-shadow-lg">
+        <div className="space-y-3">
+          <h1 className="text-5xl lg:text-6xl font-bold text-white drop-shadow-lg">
             FJORD HUNTER
           </h1>
-          <p className="text-xl text-blue-100">
+          <p className="text-lg lg:text-xl text-blue-100">
             Norsk Båt Eventyr
           </p>
         </div>

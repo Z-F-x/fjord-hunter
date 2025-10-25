@@ -19,6 +19,13 @@ export function MobileControls() {
   }
 
   const handleShoot = () => {
+    const now = Date.now()
+    const lastShotKey = 'lastMobileShot'
+    const lastShot = parseInt(localStorage.getItem(lastShotKey) || '0')
+    
+    if (now - lastShot < 300) return // Cooldown
+    localStorage.setItem(lastShotKey, now.toString())
+    
     setIsShooting(true)
     setTimeout(() => setIsShooting(false), 250)
   }

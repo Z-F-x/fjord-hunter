@@ -14,13 +14,18 @@ import { ExplosionEffect } from "./explosion-effect"
 import { SparkleEffect } from "./sparkle-effect"
 import { FloatingText } from "./floating-text"
 import { useGameStore } from "@/store/game-store"
+import { Projectile, Crosshair } from "./projectile"
 
 export default function GameScene() {
   const explosions = useGameStore((state) => state.explosions)
   const sparkles = useGameStore((state) => state.sparkles)
   const floatingTexts = useGameStore((state) => state.floatingTexts)
+  const projectiles = useGameStore((state) => state.projectiles)
+  const showCrosshair = useGameStore((state) => state.showCrosshair)
   const removeExplosion = useGameStore((state) => state.removeExplosion)
   const removeSparkle = useGameStore((state) => state.removeSparkle)
+  const removeProjectile = useGameStore((state) => state.removeProjectile)
+  const addExplosion = useGameStore((state) => state.addExplosion)
 
   return (
     <div className="h-screen w-full">
@@ -70,9 +75,25 @@ export default function GameScene() {
           {floatingTexts.map((text) => (
             <FloatingText key={text.id} text={text.text} position={text.position} color={text.color} />
           ))}
+
+          {projectiles.map((projectile) => (
+            <Projectile
+              key={projectile.id}
+              position={projectile.position}
+              direction={projectile.direction}
+              speed={projectile.speed}
+              onHit={(position) => {
+                // Create splash/hit effect
+                addExplosion(position, "hit")
+                removeProjectile(projectile.id)
+              }}
+              onExpire={() => removeProjectile(projectile.id)}
+            />
+          ))}
         </Suspense>
       </Canvas>
 
+      {showCrosshair && <Crosshair />}
       <UnderwaterEffect />
       <GameUI />
     </div>
