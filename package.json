@@ -1,0 +1,38 @@
+{
+  "dependencies": {
+    "@emotion/is-prop-valid": "latest",
+    "@react-three/drei": "latest",
+    "@react-three/fiber": "latest",
+    "@react-three/rapier": "latest",
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "^2.47.10",
+    "ai": "latest",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "expo": "latest",
+    "expo-asset": "latest",
+    "expo-file-system": "latest",
+    "expo-gl": "latest",
+    "framer-motion": "latest",
+    "immer": "latest",
+    "lucide-react": "^0.454.0",
+    "next": "16.0.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native": "latest",
+    "tailwind-merge": "^2.5.5",
+    "tailwindcss-animate": "^1.0.7",
+    "three": "latest",
+    "use-sync-external-store": "latest",
+    "zod": "^3.24.1",
+    "zustand": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "postcss": "^8.5",
+    "tailwindcss": "^4.1.9",
+    "typescript": "^5"
+  }
+}
