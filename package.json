@@ -1,4 +1,8 @@
-{
+{  
+  "scripts": {
+    "build": "next build",
+    "vercel-build": "next build"
+  },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
     "@react-three/drei": "latest",
