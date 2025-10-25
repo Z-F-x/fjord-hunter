@@ -11,9 +11,9 @@ import * as THREE from "three"
 export function Boat() {
   const boatRef = useRef<RapierRigidBody>(null)
   const muzzleFlashRef = useRef<THREE.Mesh>(null)
-  const { forward, backward, left, right, space, shift } = useKeyboardControls()
+  const { forward, backward, left, right, space, shift, f } = useKeyboardControls()
   const mobileControls = useGameStore((state) => state.mobileControls)
-  const { playShoot } = useShootingEffects()
+  const { playShoot, playFishing } = useShootingEffects()
   const setBoatPosition = useGameStore((state) => state.setBoatPosition)
   const setBoatRotation = useGameStore((state) => state.setBoatRotation)
   const setBoatSpeed = useGameStore((state) => state.setBoatSpeed)
@@ -21,59 +21,40 @@ export function Boat() {
   const setIsShooting = useGameStore((state) => state.setIsShooting)
   const setIsUnderwater = useGameStore((state) => state.setIsUnderwater)
   const addProjectile = useGameStore((state) => state.addProjectile)
-  const setShowCrosshair = useGameStore((state) => state.setShowCrosshair)
 
   const [showMuzzleFlash, setShowMuzzleFlash] = useState(false)
   const [recoilOffset, setRecoilOffset] = useState(0)
   const lastShotTime = useRef(0)
   const shootCooldown = 300 // milliseconds between shots
-  
-  // Show crosshair when aiming (right mouse button or shift key)
+
+  // Disable right-click context menu during gameplay
   useEffect(() => {
-    const handleMouseDown = (e: MouseEvent) => {
-      if (e.button === 2) { // Right mouse button
-        setShowCrosshair(true)
-      }
-    }
-    
-    const handleMouseUp = (e: MouseEvent) => {
-      if (e.button === 2) { // Right mouse button
-        setShowCrosshair(false)
-      }
-    }
-    
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault() // Prevent right-click context menu
     }
 
-    document.addEventListener('mousedown', handleMouseDown)
-    document.addEventListener('mouseup', handleMouseUp)
     document.addEventListener('contextmenu', handleContextMenu)
-    
+
     return () => {
-      document.removeEventListener('mousedown', handleMouseDown)
-      document.removeEventListener('mouseup', handleMouseUp)
       document.removeEventListener('contextmenu', handleContextMenu)
     }
-  }, [setShowCrosshair])
-  
-  // Also show crosshair when shift is held (for keyboard players)
-  useEffect(() => {
-    setShowCrosshair(shift)
-  }, [shift, setShowCrosshair])
+  }, [])
 
+  // Fishing with F key - med lyd og animasjon
   useEffect(() => {
-    if (space) {
+    if (f) {
       setIsFishing(true)
-      setTimeout(() => setIsFishing(false), 500)
+      playFishing() // Spill av fiske-lyd
+      setTimeout(() => setIsFishing(false), 1000) // Lengre animasjon
     }
-  }, [space, setIsFishing])
+  }, [f, setIsFishing, playFishing])
 
+  // Shooting with space bar or shift key
   useEffect(() => {
-    if (shift) {
+    if (shift || space) {
       const now = Date.now()
       if (now - lastShotTime.current < shootCooldown) return
-      
+
       lastShotTime.current = now
       setIsShooting(true)
       setShowMuzzleFlash(true)
@@ -86,25 +67,25 @@ export function Boat() {
       if (boatRef.current) {
         const position = boatRef.current.translation()
         const rotation = boatRef.current.rotation()
-        
-        // Calculate forward direction from boat rotation
-        const forward = new THREE.Vector3(0, 0, 1)
+
+        // Calculate forward direction from boat rotation (negative Z for forward in Three.js)
+        const forward = new THREE.Vector3(0, 0, -1)
         forward.applyQuaternion(new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w))
-        
-        // Adjust firing position to be in front of boat
+
+        // Adjust firing position to be in front of boat (further forward)
         const muzzlePos: [number, number, number] = [
-          position.x + forward.x * 2,
-          position.y + 1.5, // Height above boat
-          position.z + forward.z * 2
+          position.x + forward.x * 4,
+          position.y + 6, // VELDIG høy posisjon for å sikte øverst på skjermen
+          position.z + forward.z * 4
         ]
-        
-        // Fire direction (slightly upward for realistic trajectory)
+
+        // Fire direction aimed much higher for flying objects
         const fireDir: [number, number, number] = [
           forward.x,
-          0.1, // Slight upward angle
+          1.2, // VELDIG høy vinkel for å treffe fugler øverst på skjermen
           forward.z
         ]
-        
+
         addProjectile(muzzlePos, fireDir)
       }
 
@@ -117,14 +98,14 @@ export function Boat() {
         setRecoilOffset(0)
       }, 200)
     }
-  }, [shift, setIsShooting, playShoot, addProjectile])
+  }, [shift, space, setIsShooting, playShoot, addProjectile])
 
   useFrame(() => {
     if (!boatRef.current) return
 
     const impulseStrength = 35.0 // Slightly increased for better acceleration
     const maxSpeed = 300
-    const baseTurnRate = 2.5 // Direct angular velocity instead of torque
+    const baseTurnRate = 8.0 // MAKSIMAL kraft for garantert 360° rotasjon!
 
     const velocity = boatRef.current.linvel()
     const currentSpeed = Math.sqrt(velocity.x ** 2 + velocity.z ** 2)
@@ -139,35 +120,37 @@ export function Boat() {
       new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w),
     )
 
-    const speedFactor = Math.min(currentSpeed / 20, 1.5)
-    const effectiveTurnRate = baseTurnRate * (0.6 + speedFactor * 0.4) // Smoother scaling
+    // FIKSET: Konstant svingkraft uansett hastighet!
+    const effectiveTurnRate = baseTurnRate // ALLTID samme svingkraft!
 
     const angVel = boatRef.current.angvel()
 
     if (isLeft) {
-      // Set angular velocity directly for immediate response
+      // KRAFTIG rotasjon til venstre - SKAL kunne spinne kontinuerlig!
       boatRef.current.setAngvel(
         {
           x: angVel.x * 0.9,
-          y: effectiveTurnRate, // Direct control
+          y: Math.max(effectiveTurnRate, angVel.y + 1.0), // Akkumulative kraft for kontinuerlig spin!
           z: angVel.z * 0.9,
         },
         true,
       )
     } else if (isRight) {
+      // KRAFTIG rotasjon til høyre - SKAL kunne spinne kontinuerlig!
       boatRef.current.setAngvel(
         {
           x: angVel.x * 0.9,
-          y: -effectiveTurnRate, // Direct control
+          y: Math.min(-effectiveTurnRate, angVel.y - 1.0), // Akkumulative kraft for kontinuerlig spin!
           z: angVel.z * 0.9,
         },
         true,
       )
     } else {
+      // FIKSET: Nesten ingen damping på Y-akse for full kontinuerlig rotasjon
       boatRef.current.setAngvel(
         {
           x: angVel.x * 0.7,
-          y: angVel.y * 0.7, // Much stronger damping
+          y: angVel.y * 0.99, // NESTEN ingen damping for Y-rotasjon (full 360°)!
           z: angVel.z * 0.7,
         },
         true,
@@ -211,21 +194,24 @@ export function Boat() {
       boatRef.current.setLinvel({ x: velocity.x, y: 0, z: velocity.z }, true)
     }
 
+    // FIKSET: Kun stabiliser PITCH og ROLL, ikke YAW (Y-rotasjon)
     if (Math.abs(euler.x) > 0.1 || Math.abs(euler.z) > 0.1) {
       const stabilizationForce = 3.5 // Increased for better stability
       boatRef.current.applyTorqueImpulse(
         {
           x: -euler.x * stabilizationForce,
-          y: 0,
+          y: 0, // IKKE påvirk Y-rotasjon (venstre/høyre svinging)!
           z: -euler.z * stabilizationForce,
         },
         true,
       )
     }
 
+    // FIKSET: Kun reset ekstrem pitch/roll, BEVAR Y-rotasjon for full 360° svinging!
     if (Math.abs(euler.x) > Math.PI / 3 || Math.abs(euler.z) > Math.PI / 3) {
-      const upright = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0))
-      boatRef.current.setRotation(upright, true)
+      // BEVARER euler.y for kontinuerlig rotasjon!
+      const uprightWithYaw = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0))
+      boatRef.current.setRotation(uprightWithYaw, true)
     }
 
     setBoatPosition(position)
@@ -244,7 +230,7 @@ export function Boat() {
       colliders="cuboid"
       mass={100}
       linearDamping={1.0} // Reduced for even smoother movement
-      angularDamping={2.2} // Increased from 1.8 for better turn control
+      angularDamping={0.1} // MINIMALT for helt fri 360° rotasjon!
     >
       <group>
         <group position={[0, 0, recoilOffset]}>
