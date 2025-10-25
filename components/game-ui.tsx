@@ -23,8 +23,9 @@ export function GameUI() {
   const [showGameOver, setShowGameOver] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [showAchievements, setShowAchievements] = useState(false)
-  const [showSidebar, setShowSidebar] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(false) // Default to hidden on mobile
   const [currentNotification, setCurrentNotification] = useState<Achievement | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const score = useGameStore((state) => state.score)
   const boatSpeed = useGameStore((state) => state.boatSpeed)
   const stats = useGameStore((state) => state.stats)
@@ -33,6 +34,18 @@ export function GameUI() {
 
   const level = calculateLevel(score)
   const levelProgress = getLevelProgress(score)
+
+  useEffect(() => {
+    // Check if mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     if (isPaused || showGameOver) return
@@ -100,98 +113,171 @@ export function GameUI() {
           </div>
         </div>
 
-        <div className="absolute right-6 top-6 space-y-3">
-          <Button
-            onClick={() => setShowSidebar(!showSidebar)}
-            className="pointer-events-auto w-full bg-black/60 hover:bg-black/70"
-            size="sm"
-          >
-            {showSidebar ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            <span className="ml-2">AI Innhold (valgfritt)</span>
-          </Button>
+        {/* AI Sidebar - Hidden on mobile by default, shows as overlay when opened */}
+        <div className={`absolute right-2 top-2 space-y-2 ${isMobile ? 'max-w-xs' : ''}`}>
+          {!isMobile && (
+            <Button
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="pointer-events-auto w-full bg-black/60 hover:bg-black/70"
+              size="sm"
+            >
+              {showSidebar ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              <span className="ml-2">AI Innhold</span>
+            </Button>
+          )}
 
-          {showSidebar && (
-            <div className="pointer-events-auto space-y-3">
+          {showSidebar && !isMobile && (
+            <div className="pointer-events-auto space-y-2">
               <DailyChallenge />
               <AiTipsPanel />
             </div>
           )}
         </div>
 
-        <div className="flex items-start justify-start gap-4 p-6">
-          <Card className="pointer-events-auto bg-black/60 p-4 backdrop-blur-sm">
-            <div className="space-y-2 text-white">
-              <div className="text-sm font-medium text-white/70">POENG</div>
-              <div className="text-4xl font-bold">{score}</div>
-              {multiplier > 1 && <div className="text-lg font-semibold text-yellow-400">{multiplier}x Multiplier</div>}
-              <div className="mt-2">
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-white/70">Level {level}</span>
-                  <span className="text-white/70">{Math.round(levelProgress)}%</span>
+        {/* Game Stats - Compact layout for mobile */}
+        <div className={`${isMobile
+          ? 'flex flex-wrap gap-2 p-2'
+          : 'flex items-start justify-start gap-4 p-6'
+        }`}>
+          <Card className={`pointer-events-auto bg-black/60 backdrop-blur-sm ${
+            isMobile ? 'p-2 flex-1 min-w-[100px]' : 'p-4'
+          }`}>
+            <div className={`space-y-1 text-white ${isMobile ? 'text-center' : ''}`}>
+              <div className={`font-medium text-white/70 ${isMobile ? 'text-xs' : 'text-sm'}`}>POENG</div>
+              <div className={`font-bold ${isMobile ? 'text-lg' : 'text-4xl'}`}>{score}</div>
+              {multiplier > 1 && (
+                <div className={`font-semibold text-yellow-400 ${isMobile ? 'text-xs' : 'text-lg'}`}>
+                  {multiplier}x
                 </div>
-                <Progress value={levelProgress} className="h-2" />
+              )}
+              {!isMobile && (
+                <div className="mt-2">
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="text-white/70">Level {level}</span>
+                    <span className="text-white/70">{Math.round(levelProgress)}%</span>
+                  </div>
+                  <Progress value={levelProgress} className="h-2" />
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card className={`pointer-events-auto bg-black/60 backdrop-blur-sm ${
+            isMobile ? 'p-2 flex-1 min-w-[80px]' : 'p-4'
+          }`}>
+            <div className={`space-y-1 text-white ${isMobile ? 'text-center' : ''}`}>
+              <div className={`font-medium text-white/70 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                {isMobile ? 'KM/T' : 'FART'}
+              </div>
+              <div className={`font-bold ${isMobile ? 'text-lg' : 'text-4xl'}`}>
+                {Math.round(boatSpeed * 3.6)}
               </div>
             </div>
           </Card>
 
-          <Card className="pointer-events-auto bg-black/60 p-4 backdrop-blur-sm">
-            <div className="space-y-2 text-white">
-              <div className="text-sm font-medium text-white/70">FART</div>
-              <div className="text-4xl font-bold">{Math.round(boatSpeed * 3.6)} km/t</div>
-            </div>
-          </Card>
-
-          <Card className="pointer-events-auto bg-black/60 p-4 backdrop-blur-sm">
-            <div className="space-y-2 text-white">
-              <div className="text-sm font-medium text-white/70">TID</div>
-              <div className="text-4xl font-bold">{formatTime(time)}</div>
+          <Card className={`pointer-events-auto bg-black/60 backdrop-blur-sm ${
+            isMobile ? 'p-2 flex-1 min-w-[80px]' : 'p-4'
+          }`}>
+            <div className={`space-y-1 text-white ${isMobile ? 'text-center' : ''}`}>
+              <div className={`font-medium text-white/70 ${isMobile ? 'text-xs' : 'text-sm'}`}>TID</div>
+              <div className={`font-bold ${isMobile ? 'text-lg' : 'text-4xl'}`}>{formatTime(time)}</div>
             </div>
           </Card>
         </div>
 
-        <div className="absolute bottom-6 left-6">
-          <Card className="bg-black/60 p-4 backdrop-blur-sm">
-            <div className="space-y-2 text-sm text-white">
-              <div className="font-bold">KONTROLLER</div>
-              <div className="text-white/70">W/↑ - Fremover</div>
-              <div className="text-white/70">S/↓ - Bakover</div>
-              <div className="text-white/70">A/← - Venstre</div>
-              <div className="text-white/70">D/→ - Høyre</div>
-              <div className="text-white/70">SPACE - Fiske</div>
-              <div className="text-white/70">SHIFT - Skyte</div>
-            </div>
-          </Card>
-        </div>
+        {/* Controls info - Only show on desktop */}
+        {!isMobile && (
+          <div className="absolute bottom-6 left-6">
+            <Card className="bg-black/60 p-4 backdrop-blur-sm">
+              <div className="space-y-2 text-sm text-white">
+                <div className="font-bold">KONTROLLER</div>
+                <div className="text-white/70">W/↑ - Fremover</div>
+                <div className="text-white/70">S/↓ - Bakover</div>
+                <div className="text-white/70">A/← - Venstre</div>
+                <div className="text-white/70">D/→ - Høyre</div>
+                <div className="text-white/70">SPACE - Fiske</div>
+                <div className="text-white/70">SHIFT - Skyte</div>
+              </div>
+            </Card>
+          </div>
+        )}
 
-        <div className="absolute bottom-6 right-6 flex gap-2">
+        {/* Action buttons - Responsive layout */}
+        <div className={`absolute ${isMobile
+          ? 'top-2 right-2 flex gap-1'
+          : 'bottom-6 right-6 flex gap-2'
+        }`}>
           <Button
             onClick={() => setShowAchievements(true)}
-            className="pointer-events-auto bg-purple-600 hover:bg-purple-700"
-            size="lg"
+            className={`pointer-events-auto bg-purple-600 hover:bg-purple-700 ${
+              isMobile ? 'p-2' : 'size-lg'
+            }`}
+            size={isMobile ? "sm" : "lg"}
           >
-            <Award className="mr-2 h-5 w-5" />
-            Achievements
+            <Award className={`${isMobile ? 'h-4 w-4' : 'mr-2 h-5 w-5'}`} />
+            {!isMobile && 'Achievements'}
           </Button>
           <Button
             onClick={() => setShowLeaderboard(true)}
-            className="pointer-events-auto bg-yellow-600 hover:bg-yellow-700"
-            size="lg"
+            className={`pointer-events-auto bg-yellow-600 hover:bg-yellow-700 ${
+              isMobile ? 'p-2' : 'size-lg'
+            }`}
+            size={isMobile ? "sm" : "lg"}
           >
-            <Trophy className="mr-2 h-5 w-5" />
-            Leaderboard
+            <Trophy className={`${isMobile ? 'h-4 w-4' : 'mr-2 h-5 w-5'}`} />
+            {!isMobile && 'Leaderboard'}
           </Button>
           <Button
             onClick={() => setIsPaused(!isPaused)}
-            className="pointer-events-auto bg-blue-600 hover:bg-blue-700"
-            size="lg"
+            className={`pointer-events-auto bg-blue-600 hover:bg-blue-700 ${
+              isMobile ? 'p-2' : 'size-lg'
+            }`}
+            size={isMobile ? "sm" : "lg"}
           >
-            {isPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+            {isPaused ? <Play className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} /> : <Pause className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />}
           </Button>
-          <Button onClick={handleEndGame} className="pointer-events-auto bg-red-600 hover:bg-red-700" size="lg">
-            Avslutt
+          <Button
+            onClick={handleEndGame}
+            className={`pointer-events-auto bg-red-600 hover:bg-red-700 ${
+              isMobile ? 'p-2' : 'size-lg'
+            }`}
+            size={isMobile ? "sm" : "lg"}
+          >
+            {isMobile ? '✕' : 'Avslutt'}
           </Button>
         </div>
+
+        {/* Mobile AI menu toggle - floating button */}
+        {isMobile && (
+          <Button
+            onClick={() => setShowSidebar(!showSidebar)}
+            className="pointer-events-auto absolute right-2 bottom-20 bg-black/60 hover:bg-black/70 p-2"
+            size="sm"
+          >
+            AI
+          </Button>
+        )}
       </div>
+
+      {/* Mobile AI Sidebar Modal */}
+      {isMobile && showSidebar && (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-sm space-y-3 rounded-t-lg bg-gradient-to-b from-blue-900/95 to-blue-950/95 p-4 backdrop-blur-md">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">AI Features</h3>
+              <Button
+                onClick={() => setShowSidebar(false)}
+                className="bg-white/20 hover:bg-white/30 p-1 h-8 w-8"
+                size="sm"
+              >
+                ✕
+              </Button>
+            </div>
+            <DailyChallenge />
+            <AiTipsPanel />
+          </div>
+        </div>
+      )}
 
       {showGameOver && (
         <GameOver

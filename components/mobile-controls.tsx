@@ -25,59 +25,67 @@ export function MobileControls() {
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-20 md:hidden">
-      {/* D-pad controls - left side */}
-      <div className="absolute bottom-8 left-8">
-        <div className="relative h-40 w-40">
+      {/* D-pad controls - left side - responsive positioning */}
+      <div className="absolute bottom-4 left-4 landscape:bottom-2 landscape:left-2">
+        <div className="relative h-32 w-32 landscape:h-28 landscape:w-28">
           {/* Up */}
           <Button
             size="icon"
-            className="absolute left-1/2 top-0 h-12 w-12 -translate-x-1/2"
+            className="absolute left-1/2 top-0 h-10 w-10 -translate-x-1/2 landscape:h-8 landscape:w-8"
             onTouchStart={() => handleControl("forward", true)}
             onTouchEnd={() => handleControl("forward", false)}
           >
-            <ArrowUp className="h-6 w-6" />
+            <ArrowUp className="h-5 w-5 landscape:h-4 landscape:w-4" />
           </Button>
 
           {/* Down */}
           <Button
             size="icon"
-            className="absolute bottom-0 left-1/2 h-12 w-12 -translate-x-1/2"
+            className="absolute bottom-0 left-1/2 h-10 w-10 -translate-x-1/2 landscape:h-8 landscape:w-8"
             onTouchStart={() => handleControl("backward", true)}
             onTouchEnd={() => handleControl("backward", false)}
           >
-            <ArrowDown className="h-6 w-6" />
+            <ArrowDown className="h-5 w-5 landscape:h-4 landscape:w-4" />
           </Button>
 
           {/* Left */}
           <Button
             size="icon"
-            className="absolute left-0 top-1/2 h-12 w-12 -translate-y-1/2"
+            className="absolute left-0 top-1/2 h-10 w-10 -translate-y-1/2 landscape:h-8 landscape:w-8"
             onTouchStart={() => handleControl("left", true)}
             onTouchEnd={() => handleControl("left", false)}
           >
-            <ArrowLeft className="h-6 w-6" />
+            <ArrowLeft className="h-5 w-5 landscape:h-4 landscape:w-4" />
           </Button>
 
           {/* Right */}
           <Button
             size="icon"
-            className="absolute right-0 top-1/2 h-12 w-12 -translate-y-1/2"
+            className="absolute right-0 top-1/2 h-10 w-10 -translate-y-1/2 landscape:h-8 landscape:w-8"
             onTouchStart={() => handleControl("right", true)}
             onTouchEnd={() => handleControl("right", false)}
           >
-            <ArrowRight className="h-6 w-6" />
+            <ArrowRight className="h-5 w-5 landscape:h-4 landscape:w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Action buttons - right side */}
-      <div className="absolute bottom-8 right-8 flex flex-col gap-4">
-        <Button size="lg" className="h-16 w-16 rounded-full bg-blue-600 hover:bg-blue-700" onTouchStart={handleFish}>
-          <Fish className="h-8 w-8" />
+      {/* Action buttons - right side - responsive positioning */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-3 landscape:bottom-2 landscape:right-2 landscape:gap-2">
+        <Button 
+          size="lg" 
+          className="h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 landscape:h-12 landscape:w-12" 
+          onTouchStart={handleFish}
+        >
+          <Fish className="h-7 w-7 landscape:h-6 landscape:w-6" />
         </Button>
 
-        <Button size="lg" className="h-16 w-16 rounded-full bg-red-600 hover:bg-red-700" onTouchStart={handleShoot}>
-          <Target className="h-8 w-8" />
+        <Button 
+          size="lg" 
+          className="h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 landscape:h-12 landscape:w-12" 
+          onTouchStart={handleShoot}
+        >
+          <Target className="h-7 w-7 landscape:h-6 landscape:w-6" />
         </Button>
       </div>
     </div>
