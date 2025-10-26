@@ -103,9 +103,8 @@ export function Boat() {
   useFrame(() => {
     if (!boatRef.current) return
 
-    const impulseStrength = 35.0 // Slightly increased for better acceleration
+    const impulseStrength = 35.0
     const maxSpeed = 300
-    const baseTurnRate = 10.0 // HØYERE kraft for raskere 360° rotasjon!
 
     const velocity = boatRef.current.linvel()
     const currentSpeed = Math.sqrt(velocity.x ** 2 + velocity.z ** 2)
@@ -120,42 +119,35 @@ export function Boat() {
       new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w),
     )
 
-    // Konstant svingkraft for både desktop og mobil
-    const effectiveTurnRate = baseTurnRate
-
+    // === ROTATION & STABILIZATION LOGIC ===
     const angVel = boatRef.current.angvel()
-
+    const targetTurnSpeed = 3.5 // Moderate constant turn speed (rad/s)
+    
+    let newYAngVel = angVel.y
+    
     if (isLeft) {
-      // DIREKTE sett rotasjonshastighet for kontinuerlig venstre-sving
-      boatRef.current.setAngvel(
-        {
-          x: angVel.x * 0.8,
-          y: effectiveTurnRate, // Sett direkte til mål-hastighet
-          z: angVel.z * 0.8,
-        },
-        true,
-      )
+      // Gradual acceleration to constant target speed
+      newYAngVel = Math.min(targetTurnSpeed, angVel.y + 0.5)
     } else if (isRight) {
-      // DIREKTE sett rotasjonshastighet for kontinuerlig høyre-sving
-      boatRef.current.setAngvel(
-        {
-          x: angVel.x * 0.8,
-          y: -effectiveTurnRate, // Sett direkte til mål-hastighet
-          z: angVel.z * 0.8,
-        },
-        true,
-      )
+      newYAngVel = Math.max(-targetTurnSpeed, angVel.y - 0.5)
     } else {
-      // MINIMAL damping når ikke aktivt svinger - for smooth coast
-      boatRef.current.setAngvel(
-        {
-          x: angVel.x * 0.6,
-          y: angVel.y * 0.985, // SÅ lite damping som mulig uten at båten spinner ukontrollert
-          z: angVel.z * 0.6,
-        },
-        true,
-      )
+      // Smooth deceleration when not turning
+      newYAngVel = angVel.y * 0.9
     }
+    
+    // Apply rotation + stabilization together
+    // Dampen pitch (X) and roll (Z) for stability, but never touch yaw (Y)
+    const dampFactor = (Math.abs(euler.x) > 0.2 || Math.abs(euler.z) > 0.2) ? 0.7 : 1.0
+    
+    boatRef.current.setAngvel(
+      {
+        x: angVel.x * dampFactor, // Stabilize pitch
+        y: newYAngVel,             // Free yaw rotation
+        z: angVel.z * dampFactor,  // Stabilize roll
+      },
+      true,
+    )
+    // === END ROTATION & STABILIZATION LOGIC ===
 
     if (isForward && currentSpeed < maxSpeed) {
       const forwardDir = new THREE.Vector3(0, 0, -1).applyEuler(euler)
@@ -194,26 +186,6 @@ export function Boat() {
       boatRef.current.setLinvel({ x: velocity.x, y: 0, z: velocity.z }, true)
     }
 
-    // FIKSET: Kun stabiliser PITCH og ROLL, ikke YAW (Y-rotasjon)
-    if (Math.abs(euler.x) > 0.1 || Math.abs(euler.z) > 0.1) {
-      const stabilizationForce = 3.5 // Increased for better stability
-      boatRef.current.applyTorqueImpulse(
-        {
-          x: -euler.x * stabilizationForce,
-          y: 0, // IKKE påvirk Y-rotasjon (venstre/høyre svinging)!
-          z: -euler.z * stabilizationForce,
-        },
-        true,
-      )
-    }
-
-    // FIKSET: Kun reset ekstrem pitch/roll, BEVAR Y-rotasjon for full 360° svinging!
-    if (Math.abs(euler.x) > Math.PI / 3 || Math.abs(euler.z) > Math.PI / 3) {
-      // BEVARER euler.y for kontinuerlig rotasjon!
-      const uprightWithYaw = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0))
-      boatRef.current.setRotation(uprightWithYaw, true)
-    }
-
     setBoatPosition(position)
     setBoatRotation(rotation)
     setBoatSpeed(currentSpeed)
@@ -230,7 +202,7 @@ export function Boat() {
       colliders="cuboid"
       mass={100}
       linearDamping={1.0}
-      angularDamping={0.05} // EKSTREMT lav for perfekt 360° rotasjon!
+      angularDamping={0.5} // Lower damping for smoother rotation
     >
       <group>
         <group position={[0, 0, recoilOffset]}>
