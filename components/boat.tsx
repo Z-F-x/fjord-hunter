@@ -105,7 +105,7 @@ export function Boat() {
 
     const impulseStrength = 35.0 // Slightly increased for better acceleration
     const maxSpeed = 300
-    const baseTurnRate = 8.0 // MAKSIMAL kraft for garantert 360° rotasjon!
+    const baseTurnRate = 10.0 // HØYERE kraft for raskere 360° rotasjon!
 
     const velocity = boatRef.current.linvel()
     const currentSpeed = Math.sqrt(velocity.x ** 2 + velocity.z ** 2)
@@ -120,38 +120,38 @@ export function Boat() {
       new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w),
     )
 
-    // FIKSET: Konstant svingkraft uansett hastighet!
-    const effectiveTurnRate = baseTurnRate // ALLTID samme svingkraft!
+    // Konstant svingkraft for både desktop og mobil
+    const effectiveTurnRate = baseTurnRate
 
     const angVel = boatRef.current.angvel()
 
     if (isLeft) {
-      // KRAFTIG rotasjon til venstre - SKAL kunne spinne kontinuerlig!
+      // DIREKTE sett rotasjonshastighet for kontinuerlig venstre-sving
       boatRef.current.setAngvel(
         {
-          x: angVel.x * 0.9,
-          y: Math.max(effectiveTurnRate, angVel.y + 1.0), // Akkumulative kraft for kontinuerlig spin!
-          z: angVel.z * 0.9,
+          x: angVel.x * 0.8,
+          y: effectiveTurnRate, // Sett direkte til mål-hastighet
+          z: angVel.z * 0.8,
         },
         true,
       )
     } else if (isRight) {
-      // KRAFTIG rotasjon til høyre - SKAL kunne spinne kontinuerlig!
+      // DIREKTE sett rotasjonshastighet for kontinuerlig høyre-sving
       boatRef.current.setAngvel(
         {
-          x: angVel.x * 0.9,
-          y: Math.min(-effectiveTurnRate, angVel.y - 1.0), // Akkumulative kraft for kontinuerlig spin!
-          z: angVel.z * 0.9,
+          x: angVel.x * 0.8,
+          y: -effectiveTurnRate, // Sett direkte til mål-hastighet
+          z: angVel.z * 0.8,
         },
         true,
       )
     } else {
-      // FIKSET: Nesten ingen damping på Y-akse for full kontinuerlig rotasjon
+      // MINIMAL damping når ikke aktivt svinger - for smooth coast
       boatRef.current.setAngvel(
         {
-          x: angVel.x * 0.7,
-          y: angVel.y * 0.99, // NESTEN ingen damping for Y-rotasjon (full 360°)!
-          z: angVel.z * 0.7,
+          x: angVel.x * 0.6,
+          y: angVel.y * 0.985, // SÅ lite damping som mulig uten at båten spinner ukontrollert
+          z: angVel.z * 0.6,
         },
         true,
       )
@@ -229,8 +229,8 @@ export function Boat() {
       position={[0, 1.5, 0]}
       colliders="cuboid"
       mass={100}
-      linearDamping={1.0} // Reduced for even smoother movement
-      angularDamping={0.1} // MINIMALT for helt fri 360° rotasjon!
+      linearDamping={1.0}
+      angularDamping={0.05} // EKSTREMT lav for perfekt 360° rotasjon!
     >
       <group>
         <group position={[0, 0, recoilOffset]}>
