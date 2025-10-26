@@ -13,15 +13,20 @@ import { UnderwaterEffect } from "./underwater-effect"
 import { ExplosionEffect } from "./explosion-effect"
 import { SparkleEffect } from "./sparkle-effect"
 import { FloatingText } from "./floating-text"
+import { FishingNet } from "./fishing-net"
 import { useGameStore } from "@/store/game-store"
 import { Projectile, Crosshair } from "./projectile"
+import { FlyingTargets } from "./flying-targets"
+import { Collectibles } from "./collectibles"
+import { HowToPlayModal } from "./how-to-play"
 
 export default function GameScene() {
   const explosions = useGameStore((state) => state.explosions)
   const sparkles = useGameStore((state) => state.sparkles)
   const floatingTexts = useGameStore((state) => state.floatingTexts)
   const projectiles = useGameStore((state) => state.projectiles)
-  const showCrosshair = useGameStore((state) => state.showCrosshair)
+  const isFishing = useGameStore((state) => state.isFishing)
+  const boatPosition = useGameStore((state) => state.boatPosition)
   const removeExplosion = useGameStore((state) => state.removeExplosion)
   const removeSparkle = useGameStore((state) => state.removeSparkle)
   const removeProjectile = useGameStore((state) => state.removeProjectile)
@@ -39,10 +44,10 @@ export default function GameScene() {
           <Environment preset="sunset" />
 
           <ambientLight intensity={0.4} />
-          <directionalLight 
-            position={[50, 80, 20]} 
-            intensity={1.2} 
-            castShadow 
+          <directionalLight
+            position={[50, 80, 20]}
+            intensity={1.2}
+            castShadow
             shadow-mapSize={[2048, 2048]}
             shadow-camera-far={200}
             shadow-camera-left={-50}
@@ -57,6 +62,8 @@ export default function GameScene() {
             <Ocean />
             <Boat />
             <GameObjects />
+            <FlyingTargets />
+            <Collectibles />
           </Physics>
 
           {explosions.map((explosion) => (
@@ -76,6 +83,12 @@ export default function GameScene() {
             <FloatingText key={text.id} text={text.text} position={text.position} color={text.color} />
           ))}
 
+          {/* Fishing Net Animation */}
+          <FishingNet
+            isVisible={isFishing}
+            position={[boatPosition.x, boatPosition.y, boatPosition.z]}
+          />
+
           {projectiles.map((projectile) => (
             <Projectile
               key={projectile.id}
@@ -93,9 +106,10 @@ export default function GameScene() {
         </Suspense>
       </Canvas>
 
-      {showCrosshair && <Crosshair />}
+      <Crosshair />
       <UnderwaterEffect />
       <GameUI />
+      <HowToPlayModal />
     </div>
   )
 }

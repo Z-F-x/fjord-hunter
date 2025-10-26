@@ -163,7 +163,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ score: newScore })
     set((state) => ({ stats: { ...state.stats, score: newScore } }))
     get().checkAchievements()
-    
+
     // Check if we have a new high score and save it immediately
     if (newScore > state.highScore) {
       set({ highScore: newScore })
@@ -172,11 +172,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   loadHighScore: async () => {
     if (typeof window === 'undefined') return
-    
+
     try {
       const { getTopScores } = await import('@/app/actions')
       const topScores = await getTopScores(1)
-      
+
       if (topScores && topScores.length > 0) {
         set({ highScore: topScores[0].score })
       }
@@ -186,10 +186,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   saveCurrentScore: async () => {
     if (typeof window === 'undefined') return
-    
+
     const state = get()
     if (!state.playerName) return // Don't save if no player name
-    
+
     try {
       const { saveHighScore } = await import('@/app/actions')
       await saveHighScore({
@@ -200,7 +200,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         targetsHit: state.stats.targetsHit,
         collectiblesFound: state.stats.collectiblesFound,
       })
-      
+
       console.log(`Ny toppskår lagret: ${state.score}`)
     } catch (error) {
       console.error('Failed to save high score:', error)
@@ -287,7 +287,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       projectiles: [],
       showCrosshair: false,
     })
-    
+
     // Load high score if we don't have one yet
     if (currentHighScore === 0) {
       get().loadHighScore()

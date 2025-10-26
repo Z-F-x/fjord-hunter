@@ -115,14 +115,14 @@ export function MenuScoreboard() {
           <Trophy className="mx-auto mb-2 h-8 w-8 text-yellow-400" />
           <h3 className="text-lg font-bold text-white">🏆 TOPPSCORER 🏆</h3>
         </div>
-        
+
         <div className="grid gap-2">
           {scores.slice(0, 5).map((score, index) => (
             <div
               key={score.id}
               className={`flex items-center justify-between p-3 rounded-lg ${
-                index === 0 
-                  ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30' 
+                index === 0
+                  ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30'
                   : 'bg-white/5'
               }`}
             >
@@ -140,7 +140,7 @@ export function MenuScoreboard() {
                   </div>
                 </div>
               </div>
-              
+
               <div className={`text-right ${index === 0 ? 'text-yellow-300' : 'text-white'}`}>
                 <div className="font-bold text-lg">{score.score.toLocaleString()}</div>
                 <div className="text-xs text-white/60">poeng</div>
@@ -148,7 +148,7 @@ export function MenuScoreboard() {
             </div>
           ))}
         </div>
-        
+
         {scores.length > 5 && (
           <div className="text-center mt-3 text-white/60 text-sm">
             og {scores.length - 5} flere spillere...

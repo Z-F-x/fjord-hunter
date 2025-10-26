@@ -64,24 +64,30 @@ export function Projectile({ position, direction, speed, onHit, onExpire }: Proj
 // Crosshair/Targeting system component
 export function Crosshair() {
   return (
-    <div className="fixed inset-0 z-10 pointer-events-none flex items-center justify-center">
+    <div className="fixed inset-0 z-10 pointer-events-none flex items-start justify-center pt-24">
+      {/* Litt ned fra toppen (20% ned) for å sikte på flyvende mål */}
       <div className="relative">
-        {/* Main crosshair */}
-        <div className="w-8 h-8 border-2 border-red-500 border-opacity-70 rounded-full flex items-center justify-center">
-          <div className="w-1 h-1 bg-red-500 rounded-full"></div>
+        {/* Main crosshair - hvitt og tydeligere */}
+        <div className="w-12 h-12 border-3 border-white border-opacity-90 rounded-full flex items-center justify-center">
+          <div className="w-2 h-2 bg-white rounded-full"></div>
         </div>
-        
-        {/* Crosshair lines */}
+
+        {/* Crosshair lines - hvite og tydeligere */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="w-12 h-0.5 bg-red-500 opacity-50"></div>
-          <div className="w-0.5 h-12 bg-red-500 opacity-50 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="w-16 h-1 bg-white opacity-80"></div>
+          <div className="w-1 h-16 bg-white opacity-80 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
         </div>
-        
-        {/* Corner indicators */}
-        <div className="absolute -top-6 -left-6 w-3 h-3 border-l-2 border-t-2 border-red-500 opacity-50"></div>
-        <div className="absolute -top-6 -right-6 w-3 h-3 border-r-2 border-t-2 border-red-500 opacity-50"></div>
-        <div className="absolute -bottom-6 -left-6 w-3 h-3 border-l-2 border-b-2 border-red-500 opacity-50"></div>
-        <div className="absolute -bottom-6 -right-6 w-3 h-3 border-r-2 border-b-2 border-red-500 opacity-50"></div>
+
+        {/* Corner indicators - hvite for casual spill */}
+        <div className="absolute -top-8 -left-8 w-4 h-4 border-l-2 border-t-2 border-white opacity-70"></div>
+        <div className="absolute -top-8 -right-8 w-4 h-4 border-r-2 border-t-2 border-white opacity-70"></div>
+        <div className="absolute -bottom-8 -left-8 w-4 h-4 border-l-2 border-b-2 border-white opacity-70"></div>
+        <div className="absolute -bottom-8 -right-8 w-4 h-4 border-r-2 border-b-2 border-white opacity-70"></div>
+
+        {/* Fugl-indikator */}
+        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 text-white text-xs font-bold opacity-80">
+          🐦 FUGLESIKTE
+        </div>
       </div>
     </div>
   )

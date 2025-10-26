@@ -14,20 +14,22 @@ export function MobileControls() {
   }
 
   const handleFish = () => {
-    setIsFishing(true)
-    setTimeout(() => setIsFishing(false), 500)
+    // Trigger F-key press for fishing (samme som keyboard)
+    const event = new KeyboardEvent('keydown', { key: 'f' })
+    document.dispatchEvent(event)
   }
 
   const handleShoot = () => {
     const now = Date.now()
     const lastShotKey = 'lastMobileShot'
     const lastShot = parseInt(localStorage.getItem(lastShotKey) || '0')
-    
+
     if (now - lastShot < 300) return // Cooldown
     localStorage.setItem(lastShotKey, now.toString())
-    
-    setIsShooting(true)
-    setTimeout(() => setIsShooting(false), 250)
+
+    // Trigger the same shooting system as keyboard/mouse
+    const event = new KeyboardEvent('keydown', { key: ' ' }) // Space bar
+    document.dispatchEvent(event)
   }
 
   return (
@@ -83,18 +85,18 @@ export function MobileControls() {
 
       {/* Action buttons - right side - responsive positioning */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-3 landscape:bottom-2 landscape:right-2 landscape:gap-2">
-        <Button 
-          size="lg" 
-          className="h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 landscape:h-12 landscape:w-12" 
+        <Button
+          size="lg"
+          className="h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 landscape:h-12 landscape:w-12"
           onTouchStart={handleFish}
           title="Fiske"
         >
           <Fish className="h-7 w-7 landscape:h-6 landscape:w-6" />
         </Button>
 
-        <Button 
-          size="lg" 
-          className="h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 landscape:h-12 landscape:w-12" 
+        <Button
+          size="lg"
+          className="h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 landscape:h-12 landscape:w-12"
           onTouchStart={handleShoot}
           title="Skyte"
         >

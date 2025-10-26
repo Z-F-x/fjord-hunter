@@ -10,6 +10,7 @@ export function useKeyboardControls() {
     right: false,
     space: false,
     shift: false,
+    f: false,
   })
 
   useEffect(() => {
@@ -55,6 +56,9 @@ export function useKeyboardControls() {
         case " ":
           setKeys((k) => ({ ...k, space: true }))
           break
+        case "f":
+          setKeys((k) => ({ ...k, f: true }))
+          break
       }
     }
 
@@ -66,6 +70,7 @@ export function useKeyboardControls() {
         key === "s" ||
         key === "d" ||
         key === " " ||
+        key === "f" ||
         e.key === "Shift" ||
         key === "arrowup" ||
         key === "arrowdown" ||
@@ -99,6 +104,9 @@ export function useKeyboardControls() {
           break
         case " ":
           setKeys((k) => ({ ...k, space: false }))
+          break
+        case "f":
+          setKeys((k) => ({ ...k, f: false }))
           break
       }
     }

@@ -37,6 +37,28 @@ export function Target({ id, position, onHit }: TargetProps) {
 
     meshRef.current.rotation.y += 0.02
 
+    // Check collision with projectiles instead of just shooting direction
+    const projectiles = useGameStore.getState().projectiles
+    projectiles.forEach((projectile) => {
+      const targetPos = targetRef.current?.translation()
+      if (!targetPos) return
+
+      const distance = Math.sqrt(
+        Math.pow(projectile.position[0] - targetPos.x, 2) +
+        Math.pow(projectile.position[1] - targetPos.y, 2) +
+        Math.pow(projectile.position[2] - targetPos.z, 2)
+      )
+
+      // Hit detection
+      if (distance < 1.5) {
+        addScore(50) // More points for hitting targets
+        incrementTargetsHit()
+        useGameStore.getState().removeProjectile(projectile.id)
+        onHit(id)
+      }
+    })
+
+    // Old shooting logic for backwards compatibility
     if (isShooting) {
       const targetPos = targetRef.current.translation()
 
